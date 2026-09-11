@@ -1,0 +1,333 @@
+.town {
+  min-height: 0;
+}
+
+.town__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--hairline);
+  flex: none;
+  color: var(--accent);
+}
+
+.town__tabs {
+  display: flex;
+  gap: var(--sp-1);
+  flex: 1;
+}
+
+.ttab2 {
+  padding: 6px 11px;
+  border-radius: var(--r-sm);
+  font-family: var(--font-hud);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  border-bottom: 2px solid transparent;
+  transition: color var(--fast) var(--ease), border-color var(--fast) var(--ease);
+}
+
+.ttab2:hover {
+  color: var(--text-dim);
+}
+
+.ttab2[data-active='true'] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.town__floor {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  font-family: var(--font-hud);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.town__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #0d222c;
+}
+
+/* The floor is drawn in SVG; the name tags are positioned over it in
+   percentages and sized in cqw, so they scale with the room. */
+.town__room {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+}
+
+.seat {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  /* matches WALK_MS, so the tag travels with its agent */
+  transition: left 900ms cubic-bezier(0.4, 0, 0.2, 1),
+    top 900ms cubic-bezier(0.4, 0, 0.2, 1), border-color var(--med) var(--ease),
+    box-shadow var(--med) var(--ease), opacity var(--med) var(--ease);
+  display: flex;
+  align-items: center;
+  gap: 0.9cqw;
+  height: 3.2cqw;
+  min-width: 10.8cqw;
+  padding: 0 1.3cqw;
+  border-radius: 1cqw;
+  border: 1px solid rgba(0, 232, 241, 0.16);
+  background: rgba(3, 15, 21, 0.94);
+  box-shadow: 0 0.25cqw 0.9cqw rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 1.62cqw;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Away from its desk the tag stays legible but steps back. */
+.seat[data-away='true'] {
+  opacity: 0.7;
+}
+
+.seat[data-state='standby'] {
+  opacity: 0.55;
+}
+
+.seat[data-live='true'] {
+  border-color: color-mix(in srgb, var(--tone) 65%, transparent);
+  box-shadow: 0 0.25cqw 0.9cqw rgba(0, 0, 0, 0.6),
+    0 0 1.6cqw color-mix(in srgb, var(--tone) 45%, transparent);
+}
+
+.seat__dot {
+  width: 1cqw;
+  height: 1cqw;
+  flex: none;
+  border-radius: var(--r-full);
+  background: var(--tone);
+  box-shadow: 0 0 0.9cqw var(--tone);
+}
+
+.seat[data-live='true'] .seat__dot {
+  animation: seat-pulse 1.5s var(--ease) infinite;
+}
+
+@keyframes seat-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.82); }
+}
+
+/* ----------------------------------------------------------- character -- */
+
+/* The live layer sits over the floor art in the artwork's own coordinates. */
+.town__layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* 900ms matches WALK_MS in the store, so the walk ends when the state does. */
+.ch {
+  transition: transform 900ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ch__shadow {
+  opacity: 0.2;
+}
+
+.ch__bob {
+  animation: idle-bob 3.4s var(--ease) infinite;
+}
+
+@keyframes idle-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+
+.ch[data-state='standby'] {
+  opacity: 0.72;
+}
+
+.ch[data-state='waking'] .ch__bob {
+  animation: wake 480ms var(--ease);
+}
+
+@keyframes wake {
+  0% { transform: translateY(3px) scale(0.94); }
+  60% { transform: translateY(-2px) scale(1.03); }
+  100% { transform: none; }
+}
+
+.ch[data-walking='true'] .ch__bob {
+  animation: walk-bob 420ms linear infinite;
+}
+
+@keyframes walk-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.6px); }
+}
+
+.ch[data-walking='true'] .ch__leg--l {
+  transform-origin: -3.75px -13px;
+  animation: step-a 420ms linear infinite;
+}
+
+.ch[data-walking='true'] .ch__leg--r {
+  transform-origin: 3.75px -13px;
+  animation: step-b 420ms linear infinite;
+}
+
+@keyframes step-a {
+  0%, 100% { transform: rotate(15deg); }
+  50% { transform: rotate(-15deg); }
+}
+
+@keyframes step-b {
+  0%, 100% { transform: rotate(-15deg); }
+  50% { transform: rotate(15deg); }
+}
+
+/* At the desk: a small typing motion instead of the idle sway. */
+.ch[data-seated='true'] .ch__bob {
+  animation: type-bob 900ms var(--ease) infinite;
+}
+
+@keyframes type-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-0.8px); }
+}
+
+.ch[data-state='working'] .ch__shadow,
+.ch[data-state='waking'] .ch__shadow {
+  animation: marker 1.8s var(--ease) infinite;
+}
+
+@keyframes marker {
+  0%, 100% { opacity: 0.18; }
+  50% { opacity: 0.42; }
+}
+
+.ch__z {
+  font-family: var(--font-hud);
+  font-size: 9px;
+  font-weight: 700;
+  animation: zfloat 2.6s var(--ease) infinite;
+}
+
+@keyframes zfloat {
+  0% { opacity: 0; transform: translateY(2px); }
+  40% { opacity: 0.9; }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+
+.ch__bubble {
+  animation: bubble-in 220ms var(--ease);
+}
+
+@keyframes bubble-in {
+  from { opacity: 0; }
+}
+
+.ch__says {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+/* ----------------------------------------------------------------- foot -- */
+
+.town__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-top: 1px solid var(--hairline);
+  flex: none;
+  flex-wrap: wrap;
+}
+
+.tstat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-hud);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.tstat[data-warn='true'] {
+  color: var(--warn);
+}
+
+.tstat__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--text-faint);
+}
+
+.tstat__dot[data-on='true'] {
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+
+.tstat--meter {
+  gap: var(--sp-2);
+}
+
+.tmeter {
+  display: block;
+  width: 74px;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.tmeter b {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--med) var(--ease);
+}
+
+.tbtn {
+  margin-left: auto;
+  padding: 5px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-family: var(--font-hud);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  transition: border-color var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.tbtn:hover {
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ch,
+  .ch__bob,
+  .ch__leg--l,
+  .ch__leg--r,
+  .ch__z,
+  .tcore__ring,
+  .ws__screen {
+    animation: none !important;
+    transition: none !important;
+  }
+}

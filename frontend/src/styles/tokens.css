@@ -1,0 +1,173 @@
+/* NEXUS design tokens — matched to the command-centre reference.
+   Near-black with a teal cast, one dominant teal accent, and a small set of
+   per-agent hues that carry meaning. */
+
+:root {
+  /* Poppins throughout, as the reference design is set. --font-mono stays a
+     real monospace for the few places that need columns to line up. */
+  --font-ui: Poppins, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-hud: Poppins, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', ui-monospace, Consolas, monospace;
+
+  --text-xs: 10.5px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 17px;
+  --text-xl: 21px;
+  --text-2xl: 28px;
+
+  --hud-size: 10px;
+  --hud-track: 0.12em;
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-full: 999px;
+
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --fast: 120ms;
+  --med: 240ms;
+  --slow: 460ms;
+
+  /* agent accents */
+  --a-nexus: #00e8f1;  /* core */
+  --a-orion: #00e8f1;  /* browser  — cyan */
+  --a-zeno: #ffa04d;   /* computer — orange */
+  --a-luna: #4ade80;   /* comms    — green */
+  --a-nova: #a3b8cc;   /* vision   — silver */
+  --a-axel: #b388ff;   /* files    — violet */
+  --a-aria: #7dd3fc;   /* voice    — sky */
+  --a-kai: #facc15;    /* memory   — amber */
+
+  /* map activity dots, matching the reference's mixed palette */
+  --m-teal: #00e8f1;
+  --m-green: #4ade80;
+  --m-orange: #ffa04d;
+  --m-red: #ff5f6d;
+  --m-yellow: #facc15;
+
+  /* ---------------------------------------------------------------- dark */
+  --bg: #030a10;
+  --bg-deep: #01060a;
+  --grid: rgba(0, 232, 241, 0.022);
+  --grid-size: 30px;
+  --aura-1: rgba(0, 232, 241, 0.05);
+  --aura-2: rgba(0, 232, 241, 0.03);
+
+  --surface: #06151c;
+  --surface-2: #081d26;
+  --surface-3: #0d2833;
+  --surface-solid: #05131a;
+
+  --border: rgba(0, 232, 241, 0.14);
+  --border-strong: rgba(0, 232, 241, 0.32);
+  --hairline: rgba(0, 232, 241, 0.09);
+
+  --text: #e2f6f9;
+  --text-dim: #8ba9b3;
+  --text-faint: #5f7c86;
+
+  --accent: #00e8f1;
+  --accent-hi: #7af2f8;
+  --accent-deep: #0a8b95;
+  --accent-soft: rgba(0, 232, 241, 0.12);
+  --accent-line: rgba(0, 232, 241, 0.4);
+  --accent-glow: 0 0 14px rgba(0, 232, 241, 0.35);
+
+  --voice: #7dd3fc;
+  --voice-soft: rgba(125, 211, 252, 0.16);
+  --voice-glow: 0 0 16px rgba(125, 211, 252, 0.4);
+
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.12);
+  --warn: #ffa04d;
+  --warn-soft: rgba(255, 160, 77, 0.13);
+  --danger: #ff5f6d;
+  --danger-soft: rgba(255, 95, 109, 0.13);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 8px 26px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 26px 70px rgba(0, 0, 0, 0.75);
+
+  --scrim: rgba(1, 6, 10, 0.78);
+  --blur: 14px;
+
+  /* Agent Town */
+  --floor: #0b1c25;
+  --floor-2: #0e2430;
+  --floor-line: rgba(0, 232, 241, 0.05);
+  --desk: #193440;
+  --desk-edge: rgba(0, 232, 241, 0.16);
+  --wall: #081820;
+}
+
+[data-theme='light'] {
+  --bg: #eef4f4;
+  --bg-deep: #e2eceb;
+  --grid: rgba(10, 60, 55, 0.04);
+  --aura-1: rgba(0, 150, 130, 0.08);
+  --aura-2: rgba(0, 150, 130, 0.05);
+
+  --surface: #ffffff;
+  --surface-2: #f4faf9;
+  --surface-3: #e8f3f1;
+  --surface-solid: #ffffff;
+
+  --border: rgba(6, 70, 62, 0.14);
+  --border-strong: rgba(6, 70, 62, 0.3);
+  --hairline: rgba(6, 70, 62, 0.09);
+
+  --text: #04211d;
+  --text-dim: #40605b;
+  --text-faint: #6d8a85;
+
+  --a-nexus: #00897b;
+  --a-orion: #00897b;
+  --a-zeno: #c26a00;
+  --a-luna: #12924f;
+  --a-nova: #5b7186;
+  --a-axel: #6d3fd0;
+  --a-aria: #0a72a8;
+  --a-kai: #9a7500;
+
+  --m-teal: #00897b;
+  --m-green: #12924f;
+  --m-orange: #c26a00;
+  --m-red: #d3374d;
+  --m-yellow: #9a7500;
+
+  --accent: #00897b;
+  --accent-hi: #00a892;
+  --accent-deep: #00655a;
+  --accent-soft: rgba(0, 137, 123, 0.1);
+  --accent-line: rgba(0, 137, 123, 0.34);
+  --accent-glow: 0 0 12px rgba(0, 137, 123, 0.22);
+
+  --success: #12924f;
+  --warn: #c26a00;
+  --danger: #d3374d;
+
+  --shadow-sm: 0 1px 2px rgba(10, 40, 38, 0.08);
+  --shadow-md: 0 8px 26px rgba(10, 40, 38, 0.1);
+  --shadow-lg: 0 26px 70px rgba(10, 40, 38, 0.16);
+
+  --scrim: rgba(10, 40, 38, 0.36);
+
+  --floor: #dfeceb;
+  --floor-2: #d3e4e2;
+  --floor-line: rgba(6, 70, 62, 0.07);
+  --desk: #c2d6d4;
+  --desk-edge: rgba(6, 70, 62, 0.18);
+  --wall: #ccdedd;
+}

@@ -1,0 +1,336 @@
+/* ------------------------------------------------------------- titlebar -- */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  height: 52px;
+  padding: 0 var(--sp-4);
+  flex: none;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-solid);
+}
+
+.titlebar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.mark {
+  display: block;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  fill: var(--accent-hi);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 65%, transparent));
+}
+
+.titlebar__name {
+  font-size: 17.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #fff;
+}
+
+.titlebar__tabs {
+  display: flex;
+  gap: var(--sp-1);
+  margin-left: var(--sp-4);
+}
+
+.ttab {
+  height: 32px;
+  padding: 0 var(--sp-5);
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  font-family: var(--font-hud);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  transition: color var(--fast) var(--ease), background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.ttab:hover {
+  color: var(--text-dim);
+}
+
+.ttab[data-active='true'] {
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.titlebar__spacer {
+  flex: 1;
+}
+
+.titlebar__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-hud);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+}
+
+.titlebar__status[data-online='true'] {
+  color: var(--success);
+}
+
+.titlebar__status[data-preview='true'] {
+  color: var(--warn);
+}
+
+.titlebar__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-full);
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.titlebar__win {
+  display: flex;
+  gap: var(--sp-1);
+  margin-left: var(--sp-3);
+}
+
+.titlebar__win button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  color: var(--text-faint);
+  transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.titlebar__win button:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.titlebar__win .close:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
+/* ------------------------------------------------------------ workspace -- */
+
+.workspace {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 372px minmax(0, 1fr) 452px;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  overflow: hidden;
+}
+
+.wcol {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.wcol--left {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.wcol--center {
+  overflow: hidden;
+}
+
+@media (max-width: 1500px) {
+  .workspace {
+    grid-template-columns: 330px minmax(0, 1fr) 380px;
+  }
+}
+
+@media (max-width: 1240px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) 380px;
+  }
+  .wcol--left {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- panel -- */
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.panel--grow {
+  flex: 1;
+}
+
+/* HUD corner ticks, on every panel. */
+.panel::before,
+.panel::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--border-strong);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.panel::before {
+  top: 3px;
+  left: 3px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.panel::after {
+  bottom: 3px;
+  right: 3px;
+  border-left: none;
+  border-top: none;
+}
+
+.panel__head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 8px var(--sp-4);
+  flex: none;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--text-faint);
+  overflow: hidden;
+}
+
+/* Sizes here are the reference's own: 13.25px bold in #00e8f1. */
+.panel__head .section-title {
+  flex: 1;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.panel__head svg {
+  color: var(--accent);
+}
+
+.panel__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-hud);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+  transition: color var(--fast) var(--ease);
+}
+
+.panel__action:hover {
+  color: var(--accent);
+}
+
+.panel__body {
+  padding: 0 var(--sp-4) var(--sp-3);
+  min-height: 0;
+}
+
+.panel__blank {
+  color: var(--text-faint);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+.panel__count {
+  font-family: var(--font-hud);
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+/* ---------------------------------------------------------- plain views -- */
+
+.view {
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--sp-6) var(--sp-8) var(--sp-10);
+}
+
+.view__inner {
+  max-width: 980px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.view__head h2 {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.view__head p {
+  margin-top: var(--sp-2);
+  color: var(--text-dim);
+  font-size: var(--text-sm);
+  max-width: 70ch;
+}
+
+/* --------------------------------------------------------- preview bar -- */
+
+.previewbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 6px var(--sp-4);
+  font-family: var(--font-hud);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #140f00;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--warn) 0 14px,
+    color-mix(in srgb, var(--warn) 78%, #000) 14px 28px
+  );
+  flex: none;
+  z-index: 2;
+}
+
+.previewbar__text {
+  flex: 1;
+}
+
+.previewbar button {
+  color: #140f00;
+  border-color: rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.previewbar button:hover {
+  background: rgba(255, 255, 255, 0.56);
+}

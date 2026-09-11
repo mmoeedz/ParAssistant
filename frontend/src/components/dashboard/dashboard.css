@@ -1,0 +1,1076 @@
+/* ------------------------------------------------------------- overview -- */
+
+.rings {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0 var(--sp-2);
+}
+
+.ring {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.ring__svg {
+  width: 100%;
+  max-width: 58px;
+  transform: rotate(-90deg);
+}
+
+.ring__track {
+  fill: none;
+  stroke: var(--surface-3);
+  stroke-width: 6.5;
+}
+
+.ring__value {
+  fill: none;
+  stroke-width: 6.5;
+  stroke-linecap: round;
+  transition: stroke-dasharray var(--slow) var(--ease);
+  filter: drop-shadow(0 0 4px var(--accent-soft));
+}
+
+.ring__label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.ring__pct {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ring__name {
+  font-family: var(--font-hud);
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.spark {
+  display: block;
+  width: 100%;
+  height: 28px;
+}
+
+.spark--empty {
+  border-bottom: 1px dashed var(--hairline);
+}
+
+.spark__line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+}
+
+.spark__fill {
+  fill: var(--accent);
+  opacity: 0.08;
+  stroke: none;
+}
+
+/* ----------------------------------------------------------- task card -- */
+
+.taskcard {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: 10px var(--sp-3);
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  text-align: left;
+  transition: border-color var(--fast) var(--ease);
+}
+
+.taskcard:hover {
+  border-color: var(--accent-line);
+}
+
+.taskcard__icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: var(--r-full);
+  border: 1px solid var(--accent-line);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.taskcard__icon[data-live='true'] {
+  animation: pulse-soft 1.8s var(--ease) infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-soft); }
+  50% { box-shadow: 0 0 0 6px transparent; }
+}
+
+.taskcard__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.taskcard__goal {
+  display: block;
+  font-weight: 600;
+  font-size: 11.5px;
+  color: var(--text);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.taskcard__who {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.taskcard__pill {
+  flex: none;
+  padding: 5px 11px;
+  border-radius: var(--r-md);
+  background: var(--accent);
+  color: #04120f;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.taskcard__pill[data-state='failed'] {
+  background: var(--danger);
+  color: #fff;
+}
+
+.taskcard__pill[data-state='cancelled'] {
+  background: var(--surface-3);
+  color: var(--text-dim);
+}
+
+/* Bar and its percentage sit on one line, as in the reference. */
+.taskprog {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: 10px;
+}
+
+.taskcard__bar {
+  flex: 1;
+  min-width: 0;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.taskcard__bar span {
+  display: block;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  box-shadow: var(--accent-glow);
+  transition: width var(--slow) var(--ease);
+}
+
+.taskcard__bar span[data-state='failed'] {
+  background: var(--danger);
+}
+
+.taskprog b {
+  flex: none;
+  font-family: var(--font-hud);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ map -- */
+
+.map {
+  padding: var(--sp-1) 0 var(--sp-2);
+}
+
+.map__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.map__dot {
+  fill: var(--text-dim);
+  opacity: 0.22;
+}
+
+.map__node {
+  opacity: 0.5;
+  transition: opacity var(--med) var(--ease);
+}
+
+.map__node[data-on='true'] {
+  opacity: 1;
+}
+
+.map__halo {
+  opacity: 0.14;
+}
+
+.map__node[data-on='true'] .map__halo {
+  opacity: 0.3;
+  animation: halo-pulse 2.6s var(--ease) infinite;
+}
+
+.map__node[data-on='true'] circle:last-child {
+  animation: node-flash 2.2s var(--ease) infinite;
+}
+
+@keyframes halo-pulse {
+  0%, 100% { opacity: 0.16; transform: scale(1); }
+  50% { opacity: 0.42; transform: scale(1.25); }
+}
+
+@keyframes node-flash {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
+.map__arc {
+  fill: none;
+  stroke-width: 0.5;
+  stroke-opacity: 0.6;
+  stroke-linecap: round;
+  transition: stroke-opacity var(--med) var(--ease), stroke-width var(--med) var(--ease);
+}
+
+.map__arc[data-on='true'] {
+  stroke-opacity: 1;
+  stroke-width: 0.7;
+  stroke-dasharray: 2 3;
+  animation: arc-flow 1.4s linear infinite;
+}
+
+/* The vertical light columns the reference puts over its busiest nodes. */
+.map__beam {
+  stroke-linecap: round;
+  opacity: 0.45;
+  transition: opacity var(--med) var(--ease);
+}
+
+.map__node[data-on='true'] .map__beam {
+  opacity: 1;
+  animation: beam-breathe 2.8s var(--ease) infinite;
+}
+
+@keyframes beam-breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@keyframes arc-flow {
+  to { stroke-dashoffset: -10; }
+}
+
+.stats4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-2);
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat__value {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat__label {
+  margin-top: 1px;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+
+/* ------------------------------------------------------------ headlines -- */
+
+.news {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.news li + li {
+  border-top: 1px solid var(--hairline);
+}
+
+.news a {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 5px 0;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  transition: color var(--fast) var(--ease);
+}
+
+.news a:hover {
+  color: var(--text);
+}
+
+.news__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  flex: none;
+}
+
+.news__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.news__time {
+  flex: none;
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+/* -------------------------------------------------------- agent network -- */
+
+.net {
+  flex: none;
+}
+
+.net__body {
+  position: relative;
+  display: grid;
+  grid-template-columns: 232px 104px minmax(0, 1fr);
+  gap: 0;
+  padding: 0 var(--sp-4) var(--sp-4);
+  min-height: 282px;
+}
+
+/* The rail fills the panel, as in the reference, rather than stacking at the
+   top with dead space under the last card. */
+.net__cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.net__cards > * {
+  flex: 1 1 0;
+  min-height: 54px;
+}
+
+.acard2 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 9px var(--sp-3);
+  border-radius: var(--r-md);
+  border: 1px solid color-mix(in srgb, var(--tone) 34%, transparent);
+  background: var(--surface-2);
+  text-align: left;
+  transition: border-color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+
+.acard2:hover {
+  border-color: color-mix(in srgb, var(--tone) 60%, transparent);
+}
+
+.acard2[data-live='true'] {
+  border-color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 9%, var(--surface-2));
+  box-shadow: inset 0 0 18px color-mix(in srgb, var(--tone) 12%, transparent);
+}
+
+.acard2__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: var(--r-full);
+  border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent);
+  background: color-mix(in srgb, var(--tone) 10%, var(--surface-3));
+  color: var(--tone);
+  box-shadow: inset 0 0 10px color-mix(in srgb, var(--tone) 14%, transparent);
+}
+
+.acard2__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.acard2__name {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acard2__status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+.acard2__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--r-full);
+  background: var(--warn);
+}
+
+.acard2__dot[data-live='true'] {
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+
+.acard2__edge {
+  position: absolute;
+  right: -3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--tone);
+  opacity: 0.85;
+}
+
+.acard2[data-live='true'] .acard2__edge {
+  opacity: 1;
+  box-shadow: 0 0 8px var(--tone);
+}
+
+.net__links {
+  width: 104px;
+  height: 100%;
+}
+
+.net__link {
+  fill: none;
+  stroke-width: 1.6;
+  stroke-opacity: 0.62;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  transition: stroke-opacity var(--med) var(--ease);
+}
+
+.net__link[data-live='true'] {
+  stroke-opacity: 1;
+  stroke-width: 2;
+  stroke-dasharray: 4 7;
+  animation: flow 800ms linear infinite;
+}
+
+@keyframes flow {
+  to { stroke-dashoffset: -22; }
+}
+
+/* --------------------------------------------------------------- core -- */
+
+/* The reference frames the core in a HUD panel with chamfered corners: the
+   outer element is the hairline, the ::before inset by 1px is the fill. */
+.core {
+  --notch: 20px;
+  --core-cut: polygon(
+    var(--notch) 0,
+    100% 0,
+    100% calc(100% - var(--notch)),
+    calc(100% - var(--notch)) 100%,
+    0 100%,
+    0 var(--notch)
+  );
+  position: relative;
+  border: 0;
+  background: var(--accent-line);
+  clip-path: var(--core-cut);
+  min-height: 240px;
+  isolation: isolate;
+}
+
+.core::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  clip-path: var(--core-cut);
+  background: radial-gradient(circle at 50% 55%, rgba(0, 232, 241, 0.07), transparent 65%),
+    var(--surface-solid);
+  z-index: -1;
+}
+
+.core__head {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-4);
+  text-align: right;
+  z-index: 1;
+}
+
+.core__title {
+  font-size: 16.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.core__words {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 2px 9px;
+  margin-top: 5px;
+  max-width: 152px;
+  font-family: var(--font-hud);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+
+/* Centred in the panel and sized off its height, as the reference frames it.
+   Positioned rather than in flow: an SVG with a percentage height and an
+   intrinsic ratio would otherwise fall back to its own width and stretch the
+   whole panel. */
+/* Sits below the title block rather than behind it, as the reference frames
+   it: the words own the top of the panel, the sphere everything under them. */
+.core__sphere {
+  position: absolute;
+  top: 32%;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 64%;
+}
+
+.core__halo {
+  animation: halo 4s var(--ease) infinite;
+}
+
+@keyframes halo {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.core__spin {
+  transform-origin: 50px 50px;
+  animation: spin 34s linear infinite;
+}
+
+.core[data-busy='true'] .core__spin {
+  animation-duration: 9s;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.core__heart {
+  filter: drop-shadow(0 0 5px var(--accent-hi)) drop-shadow(0 0 14px var(--accent));
+}
+
+.core[data-busy='true'] .core__heart {
+  animation: pulse 1.4s var(--ease) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.core__foot {
+  position: absolute;
+  right: var(--sp-3);
+  bottom: var(--sp-3);
+}
+
+.core__pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--accent-line);
+  background: transparent;
+  font-family: var(--font-hud);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------------- dock -- */
+
+.dock {
+  height: 100%;
+  min-height: 0;
+}
+
+.dock__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--hairline);
+  flex: none;
+}
+
+.dock__tabs {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+}
+
+.dtab {
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  font-family: var(--font-hud);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+  transition: color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+
+.dtab:hover {
+  color: var(--text-dim);
+}
+
+.dtab[data-active='true'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dock__tools {
+  display: flex;
+  gap: 2px;
+}
+
+.iconbtn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-sm);
+  color: var(--text-faint);
+  transition: color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+
+.iconbtn:hover {
+  color: var(--text);
+  background: var(--surface-3);
+}
+
+.iconbtn[data-on='true'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dock__search {
+  margin: var(--sp-2) var(--sp-3) 0;
+  height: 28px;
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-family: var(--font-hud);
+  font-size: 11px;
+  color: var(--text);
+}
+
+.dock__search:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.dock__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--sp-3);
+  font-family: var(--font-hud);
+  font-size: 13px;
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+}
+
+/* The reference boxes each run of lines under its heading. */
+.cgroup {
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3) 9px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+}
+
+.cgroup__title {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  margin-bottom: var(--sp-2);
+}
+
+.console__row {
+  display: flex;
+  gap: 7px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.console__time {
+  color: var(--text-faint);
+  flex: none;
+}
+
+.console__src {
+  flex: none;
+  opacity: 0.9;
+}
+
+.console__arrow {
+  color: var(--text-faint);
+  flex: none;
+}
+
+.console__text {
+  color: var(--text-dim);
+  min-width: 0;
+}
+
+.console__repeat {
+  flex: none;
+  align-self: center;
+  padding: 0 5px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.console__row[data-level='ok'] .console__text {
+  color: var(--success);
+}
+
+.console__row[data-level='warn'] .console__text {
+  color: var(--warn);
+}
+
+.console__row[data-level='error'] .console__text {
+  color: var(--danger);
+}
+
+/* logs tab */
+
+.logline {
+  display: flex;
+  gap: 7px;
+  padding: 3px 0;
+  align-items: baseline;
+}
+
+.logline__who {
+  flex: none;
+  color: var(--accent);
+}
+
+.logline[data-role='user'] .logline__who {
+  color: var(--a-luna);
+}
+
+.logline__text {
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.logline[data-error='true'] .logline__text {
+  color: var(--danger);
+}
+
+/* memory tab */
+
+.memhead {
+  color: var(--text-faint);
+  margin-bottom: var(--sp-2);
+}
+
+.memrow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: 7px 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.memrow__kind {
+  flex: none;
+  width: 66px;
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.memrow__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.memrow__body b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.memrow__body span {
+  color: var(--text-dim);
+  word-break: break-word;
+}
+
+.memrow__time {
+  flex: none;
+  color: var(--text-faint);
+}
+
+/* ---------------------------------------------------------------- misc -- */
+
+.panel__blank {
+  color: var(--text-faint);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+
+/* ---------------------------------------------------------- media session -- */
+
+/* The console keeps the larger share; the player takes the rest while a track
+   is playing, and gives it all back when nothing is. */
+.wcol--right .dock {
+  flex: 6 1 0;
+  min-height: 0;
+}
+
+.media {
+  flex: 4 1 0;
+  min-height: 190px;
+}
+
+.media__source {
+  font-family: var(--font-hud);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.media__body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-5) var(--sp-4);
+  overflow: hidden;
+}
+
+/* The album art, blurred out behind the panel — the trick every player uses. */
+.media__wash {
+  position: absolute;
+  inset: -30%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(34px) saturate(1.6);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.media__body > *:not(.media__wash) {
+  position: relative;
+  z-index: 1;
+}
+
+.media__art {
+  height: clamp(64px, 38%, 132px);
+  width: auto;
+  aspect-ratio: 1;
+  flex: none;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--surface-3);
+  overflow: hidden;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
+}
+
+.media__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.media__art-blank {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-faint);
+}
+
+.media__title {
+  max-width: 100%;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.media__artist {
+  max-width: 100%;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.media__track {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  margin-top: auto;
+}
+
+.media__time {
+  flex: none;
+  font-family: var(--font-hud);
+  font-size: 10.5px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.media__bar {
+  flex: 1;
+  min-width: 0;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+/* The component writes a new width every 250ms; the transition matches that
+   step, so the two compose into continuous motion instead of ticking. */
+.media__bar b {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  box-shadow: var(--accent-glow);
+  transition: width 250ms linear;
+}
+
+.media__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  width: 100%;
+}
+
+.media__btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-full);
+  color: var(--text-dim);
+  transition: color var(--fast) var(--ease), background var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+
+.media__btn:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--surface-3);
+}
+
+.media__btn:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.media__btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.media__btn--main {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--accent-line);
+  color: var(--bg-deep);
+  background: var(--accent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.media__btn--main:hover:not(:disabled) {
+  color: var(--bg-deep);
+  background: var(--accent-hi);
+}

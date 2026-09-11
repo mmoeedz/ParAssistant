@@ -1,0 +1,35 @@
+# Secrets — real keys live only in backend/.env, never committed
+.env
+.env.local
+*.env
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+
+# Node / frontend (frontend/dist is the Vite build output — same pattern)
+node_modules/
+frontend/dist/
+.vite/
+*.local
+
+# Logs and runtime artifacts
+logs/
+*.log
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Local Claude Code tooling state — not project content
+.claude/
+
+# TS incremental build cache — regenerated, machine-specific
+*.tsbuildinfo
