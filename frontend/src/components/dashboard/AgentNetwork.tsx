@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import {
   Eye,
   FolderOpen,
@@ -56,7 +56,7 @@ const PHASE_WORDS = ['THINK', 'COORDINATE', 'EXECUTE', 'LEARN'] as const
 
 const LIVE_TASK: Task['status'][] = ['planning', 'running', 'awaiting_confirmation']
 
-export function AgentNetwork() {
+export function AgentNetwork({ style }: { style?: CSSProperties } = {}) {
   const agents = useSession((s) => s.agents)
   const tasks = useSession((s) => s.tasks)
   const activeTaskId = useSession((s) => s.activeTaskId)
@@ -149,7 +149,7 @@ export function AgentNetwork() {
     : phase === 'executing' ? 2 : learning ? 3 : -1
 
   return (
-    <section className="panel net">
+    <section className="panel net" style={style}>
       <header className="panel__head">
         <Network size={14} />
         <span className="section-title">AGENT NETWORK</span>

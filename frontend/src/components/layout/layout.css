@@ -229,6 +229,25 @@
   overflow: hidden;
 }
 
+/* Drag handle between Agent Network and Agent Town — lets the split adapt
+   to whatever vertical room a given monitor actually has. */
+.vsplit-handle {
+  flex: none;
+  display: grid;
+  place-items: center;
+  height: 14px;
+  margin: -4px 0;
+  color: var(--text-faint);
+  cursor: row-resize;
+  touch-action: none;
+  z-index: 1;
+}
+
+.vsplit-handle:hover,
+.vsplit-handle[data-dragging='true'] {
+  color: var(--accent);
+}
+
 @media (max-width: 1500px) {
   .workspace {
     grid-template-columns: 330px minmax(0, 1fr) 380px;
