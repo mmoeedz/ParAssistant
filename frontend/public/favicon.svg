@@ -11,19 +11,19 @@
       <stop offset="100%" stop-color="#020204" />
     </radialGradient>
     <radialGradient id="halo" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#6fd8ff" stop-opacity="0.55" />
-      <stop offset="45%" stop-color="#8b6bff" stop-opacity="0.22" />
-      <stop offset="100%" stop-color="#8b6bff" stop-opacity="0" />
+      <stop offset="0%" stop-color="#ffc24a" stop-opacity="0.55" />
+      <stop offset="45%" stop-color="#ff7a1a" stop-opacity="0.24" />
+      <stop offset="100%" stop-color="#ff7a1a" stop-opacity="0" />
     </radialGradient>
     <linearGradient id="ribbon" gradientUnits="userSpaceOnUse" x1="20" y1="50" x2="80" y2="50">
-      <stop offset="0%" stop-color="#2be2ff" />
-      <stop offset="18%" stop-color="#4a7dff" />
-      <stop offset="36%" stop-color="#8a5cff" />
-      <stop offset="54%" stop-color="#c150ec" />
-      <stop offset="70%" stop-color="#ff4fc7" />
-      <stop offset="85%" stop-color="#ff9bd6" />
-      <stop offset="94%" stop-color="#ffb27a" />
-      <stop offset="100%" stop-color="#2be2ff" />
+      <stop offset="0%" stop-color="#fff3c4" />
+      <stop offset="18%" stop-color="#ffd166" />
+      <stop offset="36%" stop-color="#ffab2e" />
+      <stop offset="54%" stop-color="#ff8c1a" />
+      <stop offset="70%" stop-color="#ff6a1a" />
+      <stop offset="85%" stop-color="#ff9436" />
+      <stop offset="94%" stop-color="#ffcf7a" />
+      <stop offset="100%" stop-color="#fff3c4" />
       <animateTransform attributeName="gradientTransform" type="rotate"
                          from="0 50 50" to="360 50 50" dur="10s" repeatCount="indefinite" />
     </linearGradient>
@@ -89,8 +89,8 @@
     </circle>
     <g>
       <animate attributeName="opacity" values="0.75;1;0.75" dur="4.6s" repeatCount="indefinite" />
-      <rect x="44.4" y="46.3" width="2.1" height="7.4" rx="1.05" fill="#bff3ff" />
-      <rect x="53.5" y="46.3" width="2.1" height="7.4" rx="1.05" fill="#bff3ff" />
+      <rect x="44.4" y="46.3" width="2.1" height="7.4" rx="1.05" fill="#ffe9b8" />
+      <rect x="53.5" y="46.3" width="2.1" height="7.4" rx="1.05" fill="#ffe9b8" />
     </g>
   </g>
 
@@ -124,7 +124,7 @@
     </g>
   </g>
 
-  <g fill="#dff6ff">
+  <g fill="#ffe4b0">
     <circle r="0.8" opacity="0">
       <animateMotion dur="9s" begin="0s" repeatCount="indefinite"
                      path="M 28 50 A 22 9 0 1 0 72 50 A 22 9 0 1 0 28 50" rotate="auto" />
