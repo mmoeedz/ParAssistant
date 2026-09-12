@@ -107,6 +107,20 @@ class GoogleModel(ModelClient):
         except Exception as exc:  # noqa: BLE001
             text = str(exc)
             if "RESOURCE_EXHAUSTED" in text or "429" in text:
+                log.warning("Gemini quota error, raw: %s", text)
+                # The free tier has separate per-minute AND per-day caps. Only
+                # the per-minute one clears by waiting — a per-day quota does
+                # not reset until midnight Pacific, so telling the user to
+                # "wait a minute" for that case is actively wrong.
+                lowered = text.lower()
+                if "perday" in lowered.replace(" ", "") or "requests per day" in lowered:
+                    raise ModelUnavailable(
+                        "Gemini's free-tier *daily* request quota is used up for this "
+                        "model — waiting a few minutes will not help, it resets at "
+                        "midnight Pacific time. Enable billing on the Google Cloud "
+                        "project for higher limits, switch PARADOX_MODEL to a "
+                        "different Gemini model, or switch providers."
+                    ) from exc
                 raise ModelUnavailable(
                     "Gemini rate limit hit (free tier is ~20 requests/minute). "
                     "Wait a minute, enable billing on the Google project for higher "
