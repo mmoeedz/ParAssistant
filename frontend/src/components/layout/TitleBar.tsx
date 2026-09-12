@@ -1,5 +1,6 @@
 import { Maximize2, Minus, X } from 'lucide-react'
 import { useSession, type View } from '@/store/session'
+import { ParadoxOrb } from './ParadoxOrb'
 import './layout.css'
 
 const TABS: { view: View; label: string }[] = [
@@ -31,7 +32,7 @@ export function TitleBar() {
   return (
     <header className="titlebar">
       <div className="titlebar__brand">
-        <ParadoxMark />
+        <ParadoxOrb />
         <span className="titlebar__name">PARADOX</span>
       </div>
 
@@ -70,18 +71,5 @@ export function TitleBar() {
         </div>
       ) : null}
     </header>
-  )
-}
-
-/** An angular P, in the same blocky style as the N it replaces: a stem plus a
-    hollow rectangular bowl, built from four rectangular fills. */
-function ParadoxMark() {
-  return (
-    <svg className="mark" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M2 3h5v18H2z" />
-      <path d="M7 3h15v4H7z" />
-      <path d="M18 3h4v10h-4z" />
-      <path d="M7 9h11v4H7z" />
-    </svg>
   )
 }
