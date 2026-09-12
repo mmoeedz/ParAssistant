@@ -29,8 +29,8 @@
    this only sizes it and adds the two CSS-driven breathing layers. */
 .orb {
   display: block;
-  width: 28px;
-  height: 28px;
+  width: 38px;
+  height: 38px;
   flex: none;
   overflow: visible;
 }
@@ -48,6 +48,16 @@
 .orb__eyes {
   animation: orb-eyes 4.6s ease-in-out infinite;
   transform-origin: 50px 50px;
+}
+
+/* While a task is running, the breathing quickens — the same "working
+   harder" cue the old dot-sphere gave by spinning faster. The SMIL orbit
+   speed is left alone; retiming that live would mean touching each
+   <animate> element imperatively rather than a CSS rule. */
+.orb[data-busy='true'] .orb__halo,
+.orb[data-busy='true'] .orb__core,
+.orb[data-busy='true'] .orb__eyes {
+  animation-duration: 1.6s;
 }
 
 @keyframes orb-breathe {

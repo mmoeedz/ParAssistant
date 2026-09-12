@@ -386,7 +386,7 @@
 .net__body {
   position: relative;
   display: grid;
-  grid-template-columns: 232px 104px minmax(0, 1fr);
+  grid-template-columns: 246px 92px minmax(0, 1fr);
   gap: 0;
   padding: 0 var(--sp-4) var(--sp-4);
   min-height: 282px;
@@ -405,40 +405,68 @@
   min-height: 54px;
 }
 
+/* Rounded, with the bottom-left corner cut back — the same chamfer language
+   as the core panel next to it. Built the same way too: this element is the
+   hairline, the ::before inset by 1px is the fill, and both share the clip
+   so the cut edge keeps its border. */
 .acard2 {
+  --card-cut: polygon(0 0, 100% 0, 100% 100%, 15px 100%, 0 calc(100% - 15px));
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
-  padding: 9px var(--sp-3);
-  border-radius: var(--r-md);
-  border: 1px solid color-mix(in srgb, var(--tone) 34%, transparent);
-  background: var(--surface-2);
+  gap: 11px;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 11px;
+  clip-path: var(--card-cut);
+  background: color-mix(in srgb, var(--tone) 55%, transparent);
   text-align: left;
-  transition: border-color var(--fast) var(--ease), background var(--fast) var(--ease);
+  isolation: isolate;
+  transition: background var(--fast) var(--ease);
+}
+
+.acard2::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  border-radius: 10px;
+  clip-path: var(--card-cut);
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--tone) 8%, var(--surface-solid)),
+    var(--surface-solid) 64%
+  );
 }
 
 .acard2:hover {
-  border-color: color-mix(in srgb, var(--tone) 60%, transparent);
+  background: color-mix(in srgb, var(--tone) 78%, transparent);
 }
 
 .acard2[data-live='true'] {
-  border-color: var(--tone);
-  background: color-mix(in srgb, var(--tone) 9%, var(--surface-2));
-  box-shadow: inset 0 0 18px color-mix(in srgb, var(--tone) 12%, transparent);
+  background: var(--tone);
+}
+
+.acard2[data-live='true']::before {
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--tone) 16%, var(--surface-solid)),
+    var(--surface-solid) 70%
+  );
 }
 
 .acard2__icon {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   flex: none;
   border-radius: var(--r-full);
-  border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent);
-  background: color-mix(in srgb, var(--tone) 10%, var(--surface-3));
+  border: 1.5px solid color-mix(in srgb, var(--tone) 75%, transparent);
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
   color: var(--tone);
-  box-shadow: inset 0 0 10px color-mix(in srgb, var(--tone) 14%, transparent);
+  box-shadow: inset 0 0 12px color-mix(in srgb, var(--tone) 18%, transparent),
+    0 0 10px color-mix(in srgb, var(--tone) 22%, transparent);
 }
 
 .acard2__text {
@@ -448,34 +476,68 @@
 
 .acard2__name {
   display: block;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--text);
+  font-size: 10.8px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* The status line takes the agent's own colour, as in the reference — the
+   card is colour-coded end to end rather than only at its border. */
 .acard2__status {
   display: flex;
   align-items: center;
   gap: 5px;
   margin-top: 3px;
   font-size: 10.5px;
-  color: var(--text-faint);
+  color: var(--tone);
 }
 
 .acard2__dot {
   width: 5px;
   height: 5px;
   border-radius: var(--r-full);
-  background: var(--warn);
+  background: var(--tone);
+  box-shadow: 0 0 6px var(--tone);
 }
 
 .acard2__dot[data-live='true'] {
   background: var(--success);
   box-shadow: 0 0 6px var(--success);
+}
+
+/* Four bars on the right edge. They only animate while the agent is live —
+   see the comment beside them in AgentNetwork.tsx. */
+.acard2__act {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 13px;
+  flex: none;
+  opacity: 0.5;
+}
+
+.acard2__act i {
+  width: 2px;
+  border-radius: 1px;
+  background: var(--tone);
+}
+
+.acard2__act[data-live='true'] {
+  opacity: 1;
+}
+
+.acard2__act[data-live='true'] i {
+  box-shadow: 0 0 5px var(--tone);
+  animation: act-bar 0.9s var(--ease) infinite;
+}
+
+@keyframes act-bar {
+  0%, 100% { transform: scaleY(0.45); }
+  50% { transform: scaleY(1); }
 }
 
 .acard2__edge {
@@ -496,28 +558,35 @@
 }
 
 .net__links {
-  width: 104px;
+  width: 92px;
   height: 100%;
 }
 
+/* A smooth glowing path rather than a wire — the motion cue is the particle
+   riding it (.net__spark), not a marching-ants dash. */
 .net__link {
   fill: none;
-  stroke-width: 1.6;
-  stroke-opacity: 0.62;
+  stroke-width: 1.8;
+  stroke-opacity: 0.9;
   stroke-linejoin: round;
   stroke-linecap: round;
-  transition: stroke-opacity var(--med) var(--ease);
+  filter: drop-shadow(0 0 2.5px currentColor);
+  transition: stroke-opacity var(--med) var(--ease), stroke-width var(--med) var(--ease);
 }
 
 .net__link[data-live='true'] {
   stroke-opacity: 1;
-  stroke-width: 2;
-  stroke-dasharray: 4 7;
-  animation: flow 800ms linear infinite;
+  stroke-width: 2.2;
+  filter: drop-shadow(0 0 5px currentColor);
 }
 
-@keyframes flow {
-  to { stroke-dashoffset: -22; }
+/* The tap partway along each run, as in the reference. */
+.net__node {
+  filter: drop-shadow(0 0 3px currentColor);
+}
+
+.net__spark {
+  filter: drop-shadow(0 0 2.5px currentColor);
 }
 
 /* --------------------------------------------------------------- core -- */
@@ -540,6 +609,10 @@
   clip-path: var(--core-cut);
   min-height: 240px;
   isolation: isolate;
+  /* The header inside scales off this panel's own width, not the viewport's —
+     how wide it gets depends on the whole three-column layout, so a viewport
+     media query is the wrong measure. */
+  container-type: inline-size;
 }
 
 .core::before {
@@ -547,106 +620,324 @@
   position: absolute;
   inset: 1px;
   clip-path: var(--core-cut);
-  background: radial-gradient(circle at 50% 55%, rgba(0, 232, 241, 0.07), transparent 65%),
+  background: radial-gradient(circle at 50% 55%, rgba(255, 255, 255, 0.035), transparent 65%),
     var(--surface-solid);
   z-index: -1;
 }
 
+/* A top row across the panel: title on the left, stage stepper on the right,
+   the globe filling the space beneath them both. */
 .core__head {
   position: absolute;
-  top: var(--sp-3);
-  right: var(--sp-4);
-  text-align: right;
+  top: 16px;
+  left: var(--sp-5);
+  right: var(--sp-5);
   z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  pointer-events: none;
 }
 
 .core__title {
-  font-size: 16.5px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
   color: var(--accent);
-  text-shadow: 0 0 16px color-mix(in srgb, var(--accent) 55%, transparent);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--accent) 55%, transparent),
+    0 1px 7px rgba(0, 0, 0, 0.9);
 }
 
-.core__words {
+/* THINK · COORDINATE · EXECUTE · LEARN — real states, not a caption. See the
+   comment above PHASE_WORDS in AgentNetwork.tsx for what each maps to. The
+   rail beneath fills to whichever stage is true right now. */
+.core__steps {
+  flex: none;
+  min-width: 0;
+}
+
+.core__steps-words {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 2px 9px;
-  margin-top: 5px;
-  max-width: 152px;
-  font-family: var(--font-hud);
-  font-size: 12px;
-  letter-spacing: 0.02em;
-  color: #fff;
+  justify-content: space-between;
+  gap: var(--sp-4);
 }
 
-/* Centred in the panel and sized off its height, as the reference frames it.
-   Positioned rather than in flow: an SVG with a percentage height and an
-   intrinsic ratio would otherwise fall back to its own width and stretch the
-   whole panel. */
-/* Sits below the title block rather than behind it, as the reference frames
-   it: the words own the top of the panel, the sphere everything under them. */
-.core__sphere {
+.core__step-word {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  color: var(--text-dim);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+  transition: color var(--med) var(--ease);
+}
+
+.core__step-word[data-state='done'] {
+  color: var(--text);
+}
+
+.core__step-word[data-state='active'] {
+  color: var(--accent-hi);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 65%, transparent);
+}
+
+.core__steps-rail {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 10px;
+  margin-top: 5px;
+}
+
+/* The unlit rail, and the lit section over it. Both are inset by half a dot
+   so they start and end at the dot centres rather than the row's edges. */
+.core__rail,
+.core__rail-fill {
   position: absolute;
-  top: 32%;
-  left: 0;
+  top: 50%;
+  left: 3px;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.core__rail {
+  right: 3px;
+  background: var(--border-strong);
+}
+
+.core__rail-fill {
+  max-width: calc(100% - 6px);
+  background: var(--accent);
+  box-shadow: 0 0 7px var(--accent);
+  transition: width var(--slow, 420ms) var(--ease);
+}
+
+.core__step-dot {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: var(--r-full);
+  background: var(--border-strong);
+  transition: background var(--med) var(--ease), box-shadow var(--med) var(--ease);
+}
+
+.core__step-dot[data-state='done'] {
+  background: var(--accent);
+  box-shadow: 0 0 7px var(--accent);
+}
+
+.core__step-dot[data-state='active'] {
+  background: var(--accent-hi);
+  box-shadow: 0 0 8px var(--accent), 0 0 16px color-mix(in srgb, var(--accent) 60%, transparent);
+  animation: phase-pulse 1.2s var(--ease) infinite;
+}
+
+@keyframes phase-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.35); }
+}
+
+/* A narrow centre column leaves the core panel too tight for the full
+   header — it drops to essentials rather than wrapping over the globe. */
+@container (max-width: 380px) {
+  .core__title {
+    font-size: 12px;
+    letter-spacing: 0.05em;
+  }
+  .core__step-word {
+    font-size: 8px;
+    letter-spacing: 0.04em;
+  }
+  .core__steps-words {
+    gap: var(--sp-2);
+  }
+}
+
+@container (max-width: 250px) {
+  .core__steps {
+    display: none;
+  }
+}
+
+/* The live-task callout — only ever mounted while liveTask is set (see
+   AgentNetwork.tsx), so the fade-in also plays as a cue that the Core just
+   picked something up. Anchored top-right, mirroring the title's top-left
+   corner, so it can never collide with it regardless of goal text length. */
+/* Top centre, above the globe — the band the centred title leaves free. */
+.core__ask {
+  position: absolute;
+  top: var(--sp-3);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: min(72%, 230px);
+  padding: 5px 9px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--accent-line);
+  background: color-mix(in srgb, var(--surface-solid) 82%, transparent);
+  backdrop-filter: blur(4px);
+  color: var(--text-dim);
+  animation: ask-in var(--med) var(--ease);
+}
+
+.core__ask::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 7px;
+  height: 7px;
+  margin-left: -4px;
+  border-right: 1px solid var(--accent-line);
+  border-bottom: 1px solid var(--accent-line);
+  background: color-mix(in srgb, var(--surface-solid) 82%, transparent);
+  transform: rotate(45deg);
+}
+
+.core__ask svg {
+  flex: none;
+  color: var(--accent);
+}
+
+.core__ask-text {
+  font-size: 10.5px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes ask-in {
+  0% { opacity: 0; transform: translateY(-3px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+
+/* The orb fills the panel below the head — centred rather than in flow: a
+   percentage height on an SVG with its own intrinsic ratio would otherwise
+   fall back to its own width and stretch the whole panel. */
+.core__orb,
+.cw {
+  position: absolute;
+  inset: 6% 4% 4%;
+  width: 92%;
+  height: 90%;
+  overflow: visible;
+}
+
+.cw svg {
   display: block;
   width: 100%;
-  height: 64%;
-}
-
-.core__halo {
-  animation: halo 4s var(--ease) infinite;
-}
-
-@keyframes halo {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
-.core__spin {
-  transform-origin: 50px 50px;
-  animation: spin 34s linear infinite;
-}
-
-.core[data-busy='true'] .core__spin {
-  animation-duration: 9s;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.core__heart {
-  filter: drop-shadow(0 0 5px var(--accent-hi)) drop-shadow(0 0 14px var(--accent));
-}
-
-.core[data-busy='true'] .core__heart {
-  animation: pulse 1.4s var(--ease) infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
+  height: 100%;
+  overflow: visible;
 }
 
 .core__foot {
   position: absolute;
   right: var(--sp-3);
   bottom: var(--sp-3);
+  z-index: 1;
 }
 
 .core__pill {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 4px 10px;
   border-radius: var(--r-md);
   border: 1px solid var(--accent-line);
-  background: transparent;
+  background: color-mix(in srgb, var(--surface-solid) 70%, transparent);
+  backdrop-filter: blur(4px);
   font-family: var(--font-hud);
   font-size: 9.5px;
   letter-spacing: 0.1em;
   color: var(--accent);
+}
+
+.core__pill-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--r-full);
+  background: var(--text-faint);
+  flex: none;
+}
+
+.core__pill-dot[data-on='true'] {
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  animation: phase-pulse 1.8s var(--ease) infinite;
+}
+
+/* -------------------------------------------------------- core orb (cw) -- */
+/* CoreOrb's own breathing/shimmer. Swirl rotation and blob morph timing is
+   baked into the SMIL the component renders (it re-keys on phase change to
+   restart cleanly with the new numbers) — this only covers the two things
+   that are genuinely simpler as CSS: the halo breathing, and each surface
+   mote's own twinkle. */
+.cw__halo {
+  animation-name: cw-breathe;
+  animation-timing-function: var(--ease);
+  animation-iteration-count: infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+@keyframes cw-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
+.cw__mote {
+  animation: cw-twinkle 3.2s ease-in-out infinite;
+}
+
+@keyframes cw-twinkle {
+  0%, 100% { opacity: var(--mote-o, 0.6); }
+  50% { opacity: calc(var(--mote-o, 0.6) * 0.55); }
+}
+
+.cw__sphere[data-phase='thinking'] .cw__mote,
+.cw__sphere[data-phase='coordinating'] .cw__mote {
+  animation-duration: 1.8s;
+}
+
+.cw__sphere[data-phase='executing'] .cw__mote {
+  animation-duration: 1s;
+}
+
+/* ---------------------------------------------------- card status pulse -- */
+
+.acard2__dot-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 10px;
+  height: 10px;
+  flex: none;
+}
+
+.acard2__pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-full);
+  background: var(--tone);
+  opacity: 0;
+}
+
+.acard2__pulse[data-live='true'] {
+  animation: card-pulse 1.8s var(--ease) infinite;
+}
+
+@keyframes card-pulse {
+  0% { transform: scale(0.4); opacity: 0.55; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
 
 /* ---------------------------------------------------------------- dock -- */

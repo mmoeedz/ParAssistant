@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   Eye,
   FolderOpen,
@@ -13,6 +13,8 @@ import {
 } from 'lucide-react'
 import { useSession } from '@/store/session'
 import { AGENTS, type AgentDef, type AgentState } from '@/types/agents'
+import type { Task } from '@/types/protocol'
+import { CoreOrb, type CorePhase } from './CoreOrb'
 import './dashboard.css'
 
 const ICONS: Record<string, LucideIcon> = {
@@ -36,39 +38,35 @@ function statusText(state: AgentState): string {
   return 'Error'
 }
 
-/** A fixed particle field for the core — deterministic, so it never re-shuffles. */
-function coreParticles(count = 220) {
-  const points: { x: number; y: number; r: number; o: number }[] = []
-  const golden = Math.PI * (3 - Math.sqrt(5))
-  for (let i = 0; i < count; i += 1) {
-    const y = 1 - (i / (count - 1)) * 2
-    const radius = Math.sqrt(1 - y * y)
-    const theta = golden * i
-    const x = Math.cos(theta) * radius
-    const z = Math.sin(theta) * radius
-    const depth = (z + 1) / 2
-    points.push({
-      x: 50 + x * 42,
-      y: 50 + y * 42,
-      r: 0.5 + depth * 0.9,
-      o: 0.18 + depth * 0.8,
-    })
-  }
-  return points
-}
-
 interface Wires {
   w: number
   h: number
   ys: number[]
 }
 
+/**
+ * The four words under the core title are not decoration — each maps to a
+ * real signal already in the store (see PHASES below and how `learnAt` is
+ * set). "Learn" specifically: the backend records every task to memory in
+ * its `finally` block regardless of outcome, so lighting it up right after a
+ * task succeeds is describing something that is actually happening then, not
+ * an invented fourth beat.
+ */
+const PHASE_WORDS = ['THINK', 'COORDINATE', 'EXECUTE', 'LEARN'] as const
+
+const LIVE_TASK: Task['status'][] = ['planning', 'running', 'awaiting_confirmation']
+
 export function AgentNetwork() {
   const agents = useSession((s) => s.agents)
+  const tasks = useSession((s) => s.tasks)
   const activeTaskId = useSession((s) => s.activeTaskId)
   const setView = useSession((s) => s.setView)
 
-  const particles = useMemo(() => coreParticles(), [])
+  // The callout above the Core only ever shows a task that is genuinely in
+  // flight right now — never the last-known task once it's settled, and
+  // never placeholder text. When nothing is running it simply isn't there.
+  const liveTask = tasks.find((t) => t.id === activeTaskId && LIVE_TASK.includes(t.status))
+
   // The reference lists these four, in this order.
   const shown = ['orion', 'zeno', 'luna', 'nova']
     .map((id) => AGENTS.find((a) => a.id === id))
@@ -112,8 +110,43 @@ export function AgentNetwork() {
     for (const card of cards.children) observer.observe(card)
     return () => observer.disconnect()
   }, [shown.length])
+
   const online = AGENTS.filter((a) => a.id !== 'paradox').length
-  const busy = LIVE.includes(agents.paradox.state) || shown.some((a) => LIVE.includes(agents[a.id].state))
+  const shownLive = shown.some((a) => LIVE.includes(agents[a.id].state))
+  const busy = LIVE.includes(agents.paradox.state) || shownLive
+
+  // ---- phase: which of think / coordinate / execute is true right now ----
+  // Priority is deliberate: a shown agent actually running a tool ("execute")
+  // is a stronger signal than the orchestrator's own book-keeping state.
+  let phase: CorePhase = 'idle'
+  if (shownLive) phase = 'executing'
+  else if (agents.paradox.state === 'working') phase = 'coordinating'
+  else if (agents.paradox.state === 'thinking') phase = 'thinking'
+
+  // ---- learn: a brief window right after the most recent task succeeded ----
+  const [learning, setLearning] = useState(false)
+  const lastSeenTaskRef = useRef<{ id: string; status: string } | null>(null)
+  useEffect(() => {
+    const last = tasks[tasks.length - 1]
+    if (!last) return
+    const prev = lastSeenTaskRef.current
+    if (last.status === 'succeeded' && (prev?.id !== last.id || prev.status !== 'succeeded')) {
+      setLearning(true)
+      const timer = setTimeout(() => setLearning(false), 2600)
+      lastSeenTaskRef.current = { id: last.id, status: last.status }
+      return () => clearTimeout(timer)
+    }
+    lastSeenTaskRef.current = { id: last.id, status: last.status }
+  }, [tasks])
+
+  // ---- one soft core pulse per task that just succeeded ----
+  const [pulseKey, setPulseKey] = useState(0)
+  useEffect(() => {
+    if (learning) setPulseKey((k) => k + 1)
+  }, [learning])
+
+  const phaseIndex = phase === 'thinking' ? 0 : phase === 'coordinating' ? 1
+    : phase === 'executing' ? 2 : learning ? 3 : -1
 
   return (
     <section className="panel net">
@@ -138,19 +171,31 @@ export function AgentNetwork() {
             const agent = shown[i]
             if (!agent) return null
             const live = LIVE.includes(agents[agent.id].state)
-            // Circuit routing, as in the reference: a run out of the card, one
-            // diagonal, then a parallel run into the core's edge. The ends are
-            // staggered so the four lines bundle instead of crossing.
-            const end = wires.h / 2 + (i - (wires.ys.length - 1) / 2) * 16
-            const turn = Math.min(24 + Math.abs(end - y), wires.w - 16)
+            // Cable routing, as in the reference: a short run out of the
+            // card, one smooth S-bend across the gap, then a run into the
+            // core's edge. Each cable leaves its own column so the four
+            // bends stay separate instead of overlapping into a bundle.
+            const end = wires.h / 2 + (i - (wires.ys.length - 1) / 2) * 15
+            const x1 = 16 + i * 6
+            const x2 = wires.w - 14
+            const k = (x2 - x1) * 0.5
+            const d = `M 0 ${y} H ${x1} C ${x1 + k} ${y}, ${x2 - k} ${end}, ${x2} ${end}`
+              + ` H ${wires.w}`
             return (
-              <path
-                key={agent.id}
-                d={`M 0 ${y} H 24 L ${turn} ${end} H ${wires.w}`}
-                className="net__link"
-                data-live={live}
-                stroke={agent.color}
-              />
+              <g key={agent.id}>
+                <path d={d} className="net__link" data-live={live} stroke={agent.color}
+                      style={{ color: agent.color }} />
+                <circle cx={x1} cy={y} r="2.1" fill={agent.color}
+                        className="net__node" style={{ color: agent.color }} />
+                {/* A real signal reaching the Core, not decoration: this only
+                    exists while the backend has reported that agent as live. */}
+                {live ? (
+                  <circle r="1.1" fill={agent.color} className="net__spark"
+                          style={{ color: agent.color }}>
+                    <animateMotion dur="1.1s" repeatCount="indefinite" path={d} />
+                  </circle>
+                ) : null}
+              </g>
             )
           })}
         </svg>
@@ -158,35 +203,46 @@ export function AgentNetwork() {
         <div className="core" data-busy={busy}>
           <div className="core__head">
             <div className="core__title">PARADOX CORE</div>
-            <div className="core__words">
-              <span>THINK</span>
-              <span>COORDINATE</span>
-              <span>EXECUTE</span>
-              <span>LEARN</span>
+
+            {/* A stepper, not a caption: the words label the stages and the
+                rail under them fills to whichever one is true right now. */}
+            <div className="core__steps">
+              <div className="core__steps-words">
+                {PHASE_WORDS.map((word, i) => (
+                  <span key={word} className="core__step-word"
+                        data-state={i < phaseIndex ? 'done' : i === phaseIndex ? 'active' : 'pending'}>
+                    {word}
+                  </span>
+                ))}
+              </div>
+              <div className="core__steps-rail">
+                <i className="core__rail" />
+                <i className="core__rail-fill"
+                   style={{ width: `${Math.max(phaseIndex, 0) * (100 / (PHASE_WORDS.length - 1))}%` }} />
+                {PHASE_WORDS.map((word, i) => (
+                  <i key={word} className="core__step-dot"
+                     data-state={i < phaseIndex ? 'done' : i === phaseIndex ? 'active' : 'pending'} />
+                ))}
+              </div>
             </div>
           </div>
 
-          <svg viewBox="0 0 100 100" className="core__sphere">
-            <defs>
-              <radialGradient id="coreHalo">
-                <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.5" />
-                <stop offset="55%" stopColor="var(--accent)" stopOpacity="0.08" />
-                <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
-              </radialGradient>
-            </defs>
-            <circle cx="50" cy="50" r="46" fill="url(#coreHalo)" className="core__halo" />
-            <g className="core__spin">
-              {particles.map((p, i) => (
-                <circle key={i} cx={p.x} cy={p.y} r={p.r} fill="var(--accent)" opacity={p.o} />
-              ))}
-            </g>
-            <circle cx="50" cy="50" r="3.2" fill="var(--accent-hi)" className="core__heart" />
-          </svg>
+          {/* What the Core is actually working on right now, in the user's own
+              words — not a caption, so it disappears the moment nothing is
+              live rather than freezing on the last thing asked. */}
+          {liveTask ? (
+            <div className="core__ask" key={liveTask.id}>
+              <MessageSquare size={11} />
+              <span className="core__ask-text">{liveTask.goal}</span>
+            </div>
+          ) : null}
+
+          <CoreOrb phase={phase} pulseKey={pulseKey} />
 
           <div className="core__foot">
             <span className="core__pill">
+              <i className="core__pill-dot" data-on={online > 0} />
               {online} AGENTS ONLINE
-              {activeTaskId ? ' · WORKING' : ''}
             </span>
           </div>
         </div>
@@ -218,9 +274,19 @@ function AgentCard({ def, state }: { def: AgentDef; state: AgentState }) {
       <span className="acard2__text">
         <span className="acard2__name">{def.role.replace(' Agent', '').toUpperCase()} AGENT</span>
         <span className="acard2__status">
-          <i className="acard2__dot" data-live={live} />
+          <span className="acard2__dot-wrap">
+            <i className="acard2__pulse" data-live={live} />
+            <i className="acard2__dot" data-live={live} />
+          </span>
           {statusText(state)}
         </span>
+      </span>
+      {/* Four bars that only move while the backend has this agent live —
+          idle they sit at their resting heights rather than miming work. */}
+      <span className="acard2__act" data-live={live} aria-hidden="true">
+        {[0.45, 0.85, 0.6, 1].map((tall, i) => (
+          <i key={i} style={{ height: `${tall * 100}%`, animationDelay: `${i * 0.14}s` }} />
+        ))}
       </span>
       <span className="acard2__edge" />
     </button>

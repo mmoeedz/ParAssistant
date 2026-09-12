@@ -58,25 +58,28 @@
   --m-yellow: #facc15;
 
   /* ---------------------------------------------------------------- dark */
-  --bg: #030a10;
-  --bg-deep: #01060a;
-  --grid: rgba(0, 232, 241, 0.022);
+  /* Neutral greyish black. The surfaces, borders and text carry no hue at
+     all — every bit of colour in the UI now comes from an accent, which is
+     what makes the agent hues read as information rather than decoration. */
+  --bg: #0c0c0e;
+  --bg-deep: #070708;
+  --grid: rgba(255, 255, 255, 0.022);
   --grid-size: 30px;
-  --aura-1: rgba(0, 232, 241, 0.05);
-  --aura-2: rgba(0, 232, 241, 0.03);
+  --aura-1: rgba(255, 255, 255, 0.04);
+  --aura-2: rgba(255, 255, 255, 0.025);
 
-  --surface: #06151c;
-  --surface-2: #081d26;
-  --surface-3: #0d2833;
-  --surface-solid: #05131a;
+  --surface: #141417;
+  --surface-2: #1a1a1e;
+  --surface-3: #24242a;
+  --surface-solid: #111114;
 
-  --border: rgba(0, 232, 241, 0.14);
-  --border-strong: rgba(0, 232, 241, 0.32);
-  --hairline: rgba(0, 232, 241, 0.09);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --hairline: rgba(255, 255, 255, 0.06);
 
-  --text: #e2f6f9;
-  --text-dim: #8ba9b3;
-  --text-faint: #5f7c86;
+  --text: #ececee;
+  --text-dim: #a0a0a7;
+  --text-faint: #6e6e76;
 
   --accent: #00e8f1;
   --accent-hi: #7af2f8;
@@ -100,16 +103,16 @@
   --shadow-md: 0 8px 26px rgba(0, 0, 0, 0.6);
   --shadow-lg: 0 26px 70px rgba(0, 0, 0, 0.75);
 
-  --scrim: rgba(1, 6, 10, 0.78);
+  --scrim: rgba(7, 7, 8, 0.78);
   --blur: 14px;
 
   /* Agent Town */
-  --floor: #0b1c25;
-  --floor-2: #0e2430;
-  --floor-line: rgba(0, 232, 241, 0.05);
-  --desk: #193440;
-  --desk-edge: rgba(0, 232, 241, 0.16);
-  --wall: #081820;
+  --floor: #17171b;
+  --floor-2: #1d1d22;
+  --floor-line: rgba(255, 255, 255, 0.05);
+  --desk: #2c2c33;
+  --desk-edge: rgba(255, 255, 255, 0.14);
+  --wall: #121215;
 }
 
 [data-theme='light'] {
