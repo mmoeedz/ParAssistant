@@ -4,9 +4,9 @@ Driving the browser over CDP rather than through the window gives real DOM
 access: element text, links, form fields, load state. That is the difference
 between "click at 640,318 and hope" and "click the link whose text is X".
 
-Attachment model: NEXUS talks to a browser started with a remote debugging
+Attachment model: Paradox talks to a browser started with a remote debugging
 port. If one is already listening it attaches to that; otherwise it launches
-one against a dedicated NEXUS profile, because Chrome ignores the debugging
+one against a dedicated Paradox profile, because Chrome ignores the debugging
 flag when an instance is already running on the default profile. That profile
 persists between runs, so logins stay put after the first time.
 """
@@ -27,7 +27,7 @@ from typing import Any
 from websockets.sync.client import connect
 
 DEBUG_PORT = 9222
-PROFILE_DIR = Path(os.getenv("LOCALAPPDATA", str(Path.home()))) / "NEXUS" / "browser-profile"
+PROFILE_DIR = Path(os.getenv("LOCALAPPDATA", str(Path.home()))) / "Paradox" / "browser-profile"
 
 CHROME_PATHS = [
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",

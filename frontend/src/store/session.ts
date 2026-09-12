@@ -49,7 +49,7 @@ export interface ConsoleLine {
   text: string
 }
 
-const SETTINGS_KEY = 'nexus.settings.v1'
+const SETTINGS_KEY = 'paradox.settings.v1'
 const MAX_ACTIVITY = 60
 const MAX_CONSOLE = 200
 
@@ -191,7 +191,7 @@ export const useSession = create<SessionState>((set, get) => {
     schedule(`${id}:home`, 900, () => {
       patchAgent(id, { state: 'returning', x: def.home.x, y: def.home.y, atStation: false })
       schedule(`${id}:idle`, WALK_MS, () => {
-        patchAgent(id, { state: 'standby', activity: null, atStation: id === 'nexus' })
+        patchAgent(id, { state: 'standby', activity: null, atStation: id === 'paradox' })
       })
     })
   }
@@ -273,7 +273,7 @@ export const useSession = create<SessionState>((set, get) => {
             {
               id: uid('msg'),
               role: 'system',
-              text: 'Not connected to the NEXUS agent, so nothing ran. Start the backend, then reconnect from Settings.',
+              text: 'Not connected to the Paradox agent, so nothing ran. Start the backend, then reconnect from Settings.',
               createdAt: Date.now(),
               source: 'text',
               error: true,
@@ -291,8 +291,8 @@ export const useSession = create<SessionState>((set, get) => {
         agentSocket.send({ type: 'cancel', taskId: activeTaskId ?? undefined })
       }
       if (!activeTaskId) return
-      pushLog('warn', 'nexus', 'task cancelled by the user')
-      pushActivity('nexus', 'Task stopped', 'warn')
+      pushLog('warn', 'paradox', 'task cancelled by the user')
+      pushActivity('paradox', 'Task stopped', 'warn')
       releaseAll('completed')
       set((s) => ({
         tasks: s.tasks.map((t) =>
@@ -423,13 +423,13 @@ export const useSession = create<SessionState>((set, get) => {
               capabilities: event.capabilities,
             },
           })
-          pushLog('ok', 'nexus', `${event.agent} ${event.version} online — ${event.capabilities.join(', ')}`)
+          pushLog('ok', 'paradox', `${event.agent} ${event.version} online — ${event.capabilities.join(', ')}`)
           break
 
         case 'message':
           set((s) => ({ messages: [...s.messages, event.message] }))
           if (event.message.role === 'system' && event.message.error) {
-            pushLog('error', 'nexus', event.message.text)
+            pushLog('error', 'paradox', event.message.text)
           }
           break
 
@@ -449,9 +449,9 @@ export const useSession = create<SessionState>((set, get) => {
 
         case 'task.start':
           set((s) => ({ tasks: [...s.tasks, event.task], activeTaskId: event.task.id }))
-          patchAgent('nexus', { state: 'thinking', activity: 'Analysing the request', atStation: true })
-          pushActivity('nexus', `Task received: ${event.task.goal}`)
-          pushLog('info', 'nexus', `task received: ${event.task.goal}`)
+          patchAgent('paradox', { state: 'thinking', activity: 'Analysing the request', atStation: true })
+          pushActivity('paradox', `Task received: ${event.task.goal}`)
+          pushLog('info', 'paradox', `task received: ${event.task.goal}`)
           break
 
         case 'task.update': {
@@ -461,15 +461,15 @@ export const useSession = create<SessionState>((set, get) => {
             activeTaskId: isTerminal(patch.status) ? null : s.activeTaskId,
           }))
           if (patch.status === 'awaiting_confirmation') {
-            patchAgent('nexus', { state: 'waiting', activity: 'Waiting for you' })
+            patchAgent('paradox', { state: 'waiting', activity: 'Waiting for you' })
           }
           if (patch.status === 'running') {
-            patchAgent('nexus', { state: 'working', activity: 'Coordinating' })
+            patchAgent('paradox', { state: 'working', activity: 'Coordinating' })
           }
           if (isTerminal(patch.status)) {
             const tone = patch.status === 'succeeded' ? 'good' : 'bad'
-            pushActivity('nexus', patch.summary ?? `Task ${patch.status}`, tone)
-            pushLog(patch.status === 'succeeded' ? 'ok' : 'error', 'nexus',
+            pushActivity('paradox', patch.summary ?? `Task ${patch.status}`, tone)
+            pushLog(patch.status === 'succeeded' ? 'ok' : 'error', 'paradox',
               `task ${patch.status}${patch.summary ? ` — ${patch.summary}` : ''}`)
             releaseAll(patch.status === 'succeeded' ? 'completed' : 'error')
           }
@@ -496,16 +496,16 @@ export const useSession = create<SessionState>((set, get) => {
           const owner = agentForTool(step.tool)
           if (step.status === 'running') {
             activateAgent(owner, step.label)
-            pushLog('info', step.tool ?? 'nexus', step.label)
+            pushLog('info', step.tool ?? 'paradox', step.label)
           } else if (step.status === 'done') {
             patchAgent(owner, { activity: step.label })
             pushActivity(owner, step.label, 'good')
-            pushLog('ok', step.tool ?? 'nexus',
+            pushLog('ok', step.tool ?? 'paradox',
               step.evidence ? `${step.label} — ${step.evidence}` : step.label)
           } else if (step.status === 'failed' || step.status === 'blocked') {
             patchAgent(owner, { state: step.status === 'blocked' ? 'blocked' : 'error' })
             pushActivity(owner, step.label, step.status === 'blocked' ? 'warn' : 'bad')
-            pushLog(step.status === 'blocked' ? 'warn' : 'error', step.tool ?? 'nexus',
+            pushLog(step.status === 'blocked' ? 'warn' : 'error', step.tool ?? 'paradox',
               step.evidence ? `${step.label} — ${step.evidence}` : step.label)
           }
           break
@@ -513,7 +513,7 @@ export const useSession = create<SessionState>((set, get) => {
 
         case 'confirm.request':
           set({ confirmation: event.request })
-          pushActivity('nexus', `Needs your approval: ${event.request.title}`, 'warn')
+          pushActivity('paradox', `Needs your approval: ${event.request.title}`, 'warn')
           pushLog('warn', 'permissions', `awaiting approval — ${event.request.title}`)
           break
 
@@ -561,7 +561,7 @@ export const useSession = create<SessionState>((set, get) => {
           break
 
         case 'error':
-          pushLog('error', 'nexus', event.message)
+          pushLog('error', 'paradox', event.message)
           set((s) => ({
             messages: [
               ...s.messages,

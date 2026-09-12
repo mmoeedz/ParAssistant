@@ -39,7 +39,7 @@ export function TasksView() {
           <div className="history">
             {ordered.map((task) => {
               const agents = [
-                ...new Set(task.steps.map((s) => agentForTool(s.tool)).filter((a) => a !== 'nexus')),
+                ...new Set(task.steps.map((s) => agentForTool(s.tool)).filter((a) => a !== 'paradox')),
               ]
               return (
                 <article key={task.id} className="history__item">

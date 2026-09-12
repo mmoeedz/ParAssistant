@@ -1,4 +1,4 @@
-/* NEXUS design tokens — matched to the command-centre reference.
+/* Paradox design tokens — matched to the command-centre reference.
    Near-black with a teal cast, one dominant teal accent, and a small set of
    per-agent hues that carry meaning. */
 
@@ -41,7 +41,7 @@
   --slow: 460ms;
 
   /* agent accents */
-  --a-nexus: #00e8f1;  /* core */
+  --a-paradox: #00e8f1;  /* core */
   --a-orion: #00e8f1;  /* browser  — cyan */
   --a-zeno: #ffa04d;   /* computer — orange */
   --a-luna: #4ade80;   /* comms    — green */
@@ -132,7 +132,7 @@
   --text-dim: #40605b;
   --text-faint: #6d8a85;
 
-  --a-nexus: #00897b;
+  --a-paradox: #00897b;
   --a-orion: #00897b;
   --a-zeno: #c26a00;
   --a-luna: #12924f;

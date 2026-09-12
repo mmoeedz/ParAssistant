@@ -1,4 +1,4 @@
-"""Memory and voice tools that belong to NEXUS Core itself."""
+"""Memory and voice tools that belong to Paradox Core itself."""
 
 from __future__ import annotations
 

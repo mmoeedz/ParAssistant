@@ -10,7 +10,7 @@ type Tab = 'console' | 'logs' | 'memory'
 
 /** Console lines are grouped under the headings from the reference. */
 function groupOf(line: ConsoleLine): 'SYSTEM' | 'AGENT' | 'TOOL' | 'RESULT' {
-  if (line.source === 'nexus' || line.source === 'transport') {
+  if (line.source === 'paradox' || line.source === 'transport') {
     return line.text.startsWith('task ') && line.level !== 'info' ? 'RESULT' : 'SYSTEM'
   }
   if (line.source === 'permissions' || line.source === 'memory') return 'SYSTEM'
@@ -132,14 +132,14 @@ export function ConsoleDock() {
 
         {tab === 'logs' ? (
           messages.length === 0 ? (
-            <p className="panel__blank">The conversation with NEXUS appears here.</p>
+            <p className="panel__blank">The conversation with Paradox appears here.</p>
           ) : (
             messages.slice(-60).map((message) => (
               <div key={message.id} className="logline" data-role={message.role}
                    data-error={message.error}>
                 <span className="console__time">[{clockTime(message.createdAt)}]</span>
                 <span className="logline__who">
-                  {message.role === 'user' ? 'You' : message.role === 'assistant' ? 'NEXUS' : 'system'}
+                  {message.role === 'user' ? 'You' : message.role === 'assistant' ? 'PARADOX' : 'system'}
                 </span>
                 <span className="logline__text">{message.text}</span>
               </div>
@@ -150,7 +150,7 @@ export function ConsoleDock() {
         {tab === 'memory' ? (
           facts.length === 0 ? (
             <p className="panel__blank">
-              Nothing remembered yet. NEXUS stores a fact when you ask it to, or when something will
+              Nothing remembered yet. Paradox stores a fact when you ask it to, or when something will
               obviously matter again — and it is all deletable.
             </p>
           ) : (

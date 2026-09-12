@@ -44,7 +44,7 @@ export function Composer() {
       applyServerEvent({
         type: 'error',
         message:
-          'Speech-to-text runs in the NEXUS agent, which is not connected. Nothing was recorded.',
+          'Speech-to-text runs in the Paradox agent, which is not connected. Nothing was recorded.',
       })
       return
     }

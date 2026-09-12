@@ -1,11 +1,11 @@
-# NEXUS — agent
+# Paradox — agent
 
 The process that actually controls the computer. Python 3.11+, Windows.
 
 ```bash
 python -m venv .venv
 .venv/Scripts/python.exe -m pip install -e .
-cp .env.example .env          # then put your ANTHROPIC_API_KEY in it
+cp .env.example .env          # then put one provider key in it
 .venv/Scripts/python.exe -m paradox
 ```
 
@@ -64,7 +64,7 @@ controls; `click_element` clicks by name so it survives a window moving.
 for what UIA cannot see. A screenshot goes to the model only when both fail.
 
 **The browser is driven over CDP, not through the window.** Real DOM: link text,
-form fields, load state. NEXUS attaches to a browser started with a debugging
+form fields, load state. Paradox attaches to a browser started with a debugging
 port, launching one against its own profile if none is listening — Chrome
 ignores the flag when an instance is already running on the default profile, so
 this is the only way that works reliably. That profile persists, so logins stay
@@ -102,7 +102,7 @@ focused control rather than trusting the model to comply.
 messages and clipboard contents come back wrapped in `<untrusted_content>` tags,
 and the prompt says instructions inside them are not instructions.
 
-**Memory is inspectable.** SQLite at `~/.nexus/memory.db`. Facts are stored only
+**Memory is inspectable.** SQLite at `~/.paradox/memory.db`. Facts are stored only
 when the model decides something will matter again or the user says so, each
 records its source, and every one can be deleted from the Memory panel. The
 stored facts are injected into the system prompt on every task.
@@ -110,7 +110,7 @@ stored facts are injected into the system prompt on every task.
 ## Honest gaps
 
 - **Voice notes are audio attachments.** WhatsApp only records true voice notes
-  from a live microphone; NEXUS generates speech and attaches the file, which
+  from a live microphone; Paradox generates speech and attaches the file, which
   arrives as a playable audio message rather than the blue waveform kind.
 - **No wake word.** Push-to-talk only.
 - **Volume is not verified** — Windows exposes no simple read-back, so the tool
@@ -124,14 +124,22 @@ stored facts are injected into the system prompt on every task.
 
 ## Configuration
 
+Runs on Claude, GPT, or Gemini — the provider is picked from whichever key is
+present. Without one, the agent still runs, still sees the computer, and
+refuses to act rather than pretending.
+
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `ANTHROPIC_API_KEY` | — | Required. Without it the agent runs, sees the computer, and refuses to act. |
-| `PARADOX_MODEL` | `claude-opus-5` | Needs vision for the fallback path. |
-| `PARADOX_EFFORT` | `high` | `low`–`max`. |
-| `NEXUS_STT_MODEL` | `base` | Whisper size: `tiny`–`large-v3`. |
-| `NEXUS_TTS` | `sapi` | `sapi` (local) or `edge` (neural, sends text to Microsoft). |
-| `NEXUS_MEMORY` | `~/.nexus/memory.db` | Where memory lives. |
+| `ANTHROPIC_API_KEY` | — | Selects Claude. Needs vision for the fallback path. |
+| `OPENAI_API_KEY` | — | Selects GPT. |
+| `GEMINI_API_KEY` / `GOOGLE_API_KEY` | — | Selects Gemini. |
+| `PARADOX_PROVIDER` | auto-detected | Force `anthropic` / `openai` / `google` when more than one key is set. |
+| `PARADOX_MODEL` | per-provider default | Any model id the chosen provider serves. |
+| `PARADOX_EFFORT` | `high` | `low`–`max`. Anthropic only. |
+| `PARADOX_GEMINI_THINKING` | `low` | `minimal`/`low`/`medium`/`high`. Gemini only. |
+| `PARADOX_STT_MODEL` | `base` | Whisper size: `tiny`–`large-v3`. |
+| `PARADOX_TTS` | `sapi` | `sapi` (local) or `edge` (neural, sends text to Microsoft). |
+| `PARADOX_MEMORY` | `~/.paradox/memory.db` | Where memory lives. |
 
-The model runs with adaptive thinking and server-side refusal fallbacks. The
-chain of thought is never sent to the UI.
+Claude runs with adaptive thinking and server-side refusal fallbacks; the chain
+of thought is never sent to the UI on any provider.

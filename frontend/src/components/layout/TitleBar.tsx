@@ -16,8 +16,8 @@ interface DesktopBridge {
 }
 
 const desktop: DesktopBridge | undefined = (
-  window as unknown as { nexusDesktop?: DesktopBridge }
-).nexusDesktop
+  window as unknown as { paradoxDesktop?: DesktopBridge }
+).paradoxDesktop
 
 export function TitleBar() {
   const view = useSession((s) => s.view)
@@ -31,8 +31,8 @@ export function TitleBar() {
   return (
     <header className="titlebar">
       <div className="titlebar__brand">
-        <NexusMark />
-        <span className="titlebar__name">NEXUS</span>
+        <ParadoxMark />
+        <span className="titlebar__name">PARADOX</span>
       </div>
 
       <nav className="titlebar__tabs">
@@ -73,14 +73,15 @@ export function TitleBar() {
   )
 }
 
-/** The angular N of the reference: a heavy stem, a diagonal, a detached bar. */
-function NexusMark() {
+/** An angular P, in the same blocky style as the N it replaces: a stem plus a
+    hollow rectangular bowl, built from four rectangular fills. */
+function ParadoxMark() {
   return (
     <svg className="mark" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M2 3h5.4v18H2z" />
-      <path d="M7.4 3h5L18 15.4V21h-5L7.4 8.6z" />
-      <path d="M17.2 3H22v4.6h-4.8z" />
-      <path d="M17.2 9.4H22V21h-4.8z" />
+      <path d="M2 3h5v18H2z" />
+      <path d="M7 3h15v4H7z" />
+      <path d="M18 3h4v10h-4z" />
+      <path d="M7 9h11v4H7z" />
     </svg>
   )
 }

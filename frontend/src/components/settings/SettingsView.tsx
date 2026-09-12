@@ -58,7 +58,7 @@ export function SettingsView() {
           <div className="rows">
             <Field
               label="Backend address"
-              hint="The NEXUS agent process on this machine. It does the actual computer control."
+              hint="The Paradox agent process on this machine. It does the actual computer control."
             >
               <input
                 className="input"
@@ -244,7 +244,7 @@ export function SettingsView() {
             <ShieldCheck size={18} /> Permissions
           </h2>
           <p>
-            NEXUS controls a real computer. These rules decide what it does on its own, what it
+            Paradox controls a real computer. These rules decide what it does on its own, what it
             checks with you first, and what it never touches. They are enforced by the agent, not by
             this window.
           </p>

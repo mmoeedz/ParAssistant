@@ -11,7 +11,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-AGENT_NAME = "NEXUS"
+AGENT_NAME = "PARADOX"
 AGENT_VERSION = "0.1.0"
 
 

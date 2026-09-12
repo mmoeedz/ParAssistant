@@ -223,7 +223,7 @@ TOOLS = [
         name="browser_open",
         description=(
             "Start or attach to an automatable browser and optionally open a URL. Call this before "
-            "any other browser tool. NEXUS drives a browser started with automation enabled, using "
+            "any other browser tool. Paradox drives a browser started with automation enabled, using "
             "its own profile, so the first visit to a site may not be logged in."
         ),
         schema=schema({

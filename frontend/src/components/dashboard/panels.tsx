@@ -307,7 +307,7 @@ export function LastObservation() {
       </header>
       <div className="screen">
         {observation?.image ? (
-          <img src={observation.image} alt="What NEXUS last saw on screen" />
+          <img src={observation.image} alt="What Paradox last saw on screen" />
         ) : (
           <div className="screen__none">Nothing observed yet</div>
         )}

@@ -20,7 +20,7 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any
 
-DB_PATH = Path(os.getenv("NEXUS_MEMORY", str(Path.home() / ".nexus" / "memory.db")))
+DB_PATH = Path(os.getenv("PARADOX_MEMORY", str(Path.home() / ".paradox" / "memory.db")))
 
 KINDS = ("preference", "person", "workflow", "note")
 
@@ -195,7 +195,7 @@ def recent_tasks(limit: int = 10) -> list[dict[str, Any]]:
 
 
 def context_block(limit: int = 24) -> str:
-    """What NEXUS knows about this user, for the system prompt."""
+    """What Paradox knows about this user, for the system prompt."""
     facts = recall(limit=limit)
     if not facts:
         return ""

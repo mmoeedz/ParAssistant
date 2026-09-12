@@ -23,8 +23,8 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-MODEL_NAME = os.getenv("NEXUS_STT_MODEL", "base")
-AUDIO_DIR = Path(os.getenv("TEMP", tempfile.gettempdir())) / "nexus" / "audio"
+MODEL_NAME = os.getenv("PARADOX_STT_MODEL", "base")
+AUDIO_DIR = Path(os.getenv("TEMP", tempfile.gettempdir())) / "paradox" / "audio"
 STARTUP_TIMEOUT = 180.0  # the first run downloads the model
 REQUEST_TIMEOUT = 120.0
 

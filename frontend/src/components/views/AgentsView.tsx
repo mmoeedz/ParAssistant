@@ -27,7 +27,7 @@ export function AgentsView() {
         <div className="view__head">
           <h2>Agents</h2>
           <p>
-            NEXUS delegates to these. An agent's state here is derived from tool calls the backend
+            Paradox delegates to these. An agent's state here is derived from tool calls the backend
             actually reported — if a card says working, something ran.
           </p>
         </div>
@@ -43,7 +43,7 @@ export function AgentsView() {
 }
 
 function AgentCard({ def, runtime }: { def: AgentDef; runtime: AgentRuntime }) {
-  const dormant = def.tools.length === 0 && def.id !== 'nexus'
+  const dormant = def.tools.length === 0 && def.id !== 'paradox'
 
   return (
     <article className="acard" style={{ ['--tone' as string]: def.color }} data-dormant={dormant}>

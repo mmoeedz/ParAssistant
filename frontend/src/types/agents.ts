@@ -1,12 +1,12 @@
 /**
- * The NEXUS agent roster.
+ * The Paradox agent roster.
  *
  * These are not decoration. Each agent owns a real slice of the tool registry,
  * and its state in the UI is derived from tools the backend actually ran — so
  * an agent that lights up is an agent that did something.
  */
 
-export type AgentId = 'nexus' | 'zeno' | 'orion' | 'luna' | 'nova' | 'axel' | 'aria' | 'kai'
+export type AgentId = 'paradox' | 'zeno' | 'orion' | 'luna' | 'nova' | 'axel' | 'aria' | 'kai'
 
 export type AgentState =
   | 'standby'
@@ -50,7 +50,7 @@ export interface AgentDef {
  * directly under its desk, so the character lines up with its badge.
  */
 export const STATIONS: Record<string, Station> = {
-  core: { id: 'core', label: 'NEXUS Core', x: 395, y: 200 },
+  core: { id: 'core', label: 'Paradox Core', x: 395, y: 200 },
   browser: { id: 'browser', label: 'Browser Station', x: 62, y: 138 },
   files: { id: 'files', label: 'File Room', x: 175, y: 138 },
   vision: { id: 'vision', label: 'Vision Lab', x: 282, y: 138 },
@@ -63,10 +63,10 @@ export const STATIONS: Record<string, Station> = {
 
 export const AGENTS: AgentDef[] = [
   {
-    id: 'nexus',
-    name: 'NEXUS',
+    id: 'paradox',
+    name: 'PARADOX',
     role: 'Orchestrator',
-    color: 'var(--a-nexus)',
+    color: 'var(--a-paradox)',
     station: STATIONS.core,
     home: { x: 395, y: 276 },
     tools: [],
@@ -160,8 +160,8 @@ for (const agent of AGENTS) {
 
 /** Which agent ran this tool. Unknown tools fall to the orchestrator. */
 export function agentForTool(tool: string | undefined): AgentId {
-  if (!tool) return 'nexus'
-  return TOOL_OWNER.get(tool) ?? 'nexus'
+  if (!tool) return 'paradox'
+  return TOOL_OWNER.get(tool) ?? 'paradox'
 }
 
 export interface AgentRuntime {
@@ -190,7 +190,7 @@ export function initialRuntime(): Record<AgentId, AgentRuntime> {
         activity: null,
         x: a.home.x,
         y: a.home.y,
-        atStation: a.id === 'nexus',
+        atStation: a.id === 'paradox',
         says: null,
         lastActiveAt: null,
         runs: 0,

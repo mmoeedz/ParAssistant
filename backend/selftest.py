@@ -90,7 +90,7 @@ def main() -> int:
 
     def browser_check():
         return "a debuggable browser is attached" if browser.is_attached() else (
-            "no debug browser running (NEXUS starts one on demand)"
+            "no debug browser running (Paradox starts one on demand)"
         )
 
     results.append(check("browser (CDP)", browser_check))
@@ -99,7 +99,7 @@ def main() -> int:
         from paradox.computer import whatsapp
 
         state = whatsapp.info()
-        return "running" if state.get("running") else "not running (NEXUS starts it on demand)"
+        return "running" if state.get("running") else "not running (Paradox starts it on demand)"
 
     results.append(check("whatsapp", whatsapp_check))
 

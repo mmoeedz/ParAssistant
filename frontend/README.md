@@ -1,4 +1,4 @@
-# NEXUS — frontend
+# Paradox — frontend
 
 The command centre. React 19 + TypeScript + Vite, no UI framework — the design system is CSS
 driven by tokens in `src/styles/tokens.css`.
@@ -14,10 +14,10 @@ npm run build    # typecheck + production build
 Built to the command-centre reference: a title bar with three tabs, then three columns.
 
 ```
-N NEXUS │ COMMAND · AGENTS · SYSTEM                              ● ONLINE
+P PARADOX │ COMMAND · AGENTS · SYSTEM                            ● ONLINE
 ├────────────────┬────────────────────────────────┬──────────────────────┐
 │ SYSTEM OVERVIEW│ AGENT NETWORK                  │ CONSOLE LOGS MEMORY  │
-│ CURRENT TASK   │   4 agent cards → NEXUS Core   │  > SYSTEM            │
+│ CURRENT TASK   │   4 agent cards → Paradox Core │  > SYSTEM            │
 │ GLOBAL ACTIVITY│                                │  > AGENT             │
 │ TODAY'S        │ AGENT TOWN                     │  > TOOL              │
 │  HEADLINES     │   the office, live             │  > RESULT            │

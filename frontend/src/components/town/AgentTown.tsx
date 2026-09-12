@@ -52,7 +52,7 @@ export function AgentTown() {
     return () => observer.disconnect()
   }, [])
 
-  const roster = AGENTS.filter((a) => a.id !== 'nexus')
+  const roster = AGENTS.filter((a) => a.id !== 'paradox')
   const busy = roster.filter((a) => agents[a.id].state !== 'standby')
   const hasModel = backendInfo?.capabilities.includes('model-ready')
 
@@ -82,7 +82,7 @@ export function AgentTown() {
 
       <div className="town__stage">
         <div ref={roomRef} className="town__room" role="img"
-             aria-label="Agent Town — where the NEXUS agents work">
+             aria-label="Agent Town — where the Paradox agents work">
           <svg viewBox={`0 0 ${FLOOR_W} ${floorH}`} className="town__layer"
                preserveAspectRatio="none">
             <TownFloor height={floorH} />

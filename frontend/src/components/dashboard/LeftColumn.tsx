@@ -125,7 +125,7 @@ export function CurrentTaskCard() {
             </span>
             <span className="taskcard__text">
               <span className="taskcard__goal">{task.goal}</span>
-              <span className="taskcard__who">{owner?.role ?? 'NEXUS Core'}</span>
+              <span className="taskcard__who">{owner?.role ?? 'Paradox Core'}</span>
             </span>
             <span className="taskcard__pill" data-state={task.status}>
               {live ? 'In Progress' : statusLabel(task.status)}

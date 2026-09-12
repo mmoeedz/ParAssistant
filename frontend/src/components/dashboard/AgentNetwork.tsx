@@ -112,8 +112,8 @@ export function AgentNetwork() {
     for (const card of cards.children) observer.observe(card)
     return () => observer.disconnect()
   }, [shown.length])
-  const online = AGENTS.filter((a) => a.id !== 'nexus').length
-  const busy = LIVE.includes(agents.nexus.state) || shown.some((a) => LIVE.includes(agents[a.id].state))
+  const online = AGENTS.filter((a) => a.id !== 'paradox').length
+  const busy = LIVE.includes(agents.paradox.state) || shown.some((a) => LIVE.includes(agents[a.id].state))
 
   return (
     <section className="panel net">
@@ -157,7 +157,7 @@ export function AgentNetwork() {
 
         <div className="core" data-busy={busy}>
           <div className="core__head">
-            <div className="core__title">NEXUS CORE</div>
+            <div className="core__title">PARADOX CORE</div>
             <div className="core__words">
               <span>THINK</span>
               <span>COORDINATE</span>

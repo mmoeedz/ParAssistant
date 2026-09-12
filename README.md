@@ -1,4 +1,4 @@
-# NEXUS
+# Paradox
 
 A Windows AI computer assistant. You say what you want; it works out how.
 
@@ -54,7 +54,7 @@ clearly-marked sample data — gauges, headlines, task and console included.
 
 ## The agent team
 
-NEXUS Core orchestrates; each agent owns a real slice of the tool registry.
+Paradox Core orchestrates; each agent owns a real slice of the tool registry.
 
 | Agent | Role | State |
 | --- | --- | --- |
@@ -64,7 +64,7 @@ NEXUS Core orchestrates; each agent owns a real slice of the tool registry.
 | **ORION** | Browser — Chrome/Edge over CDP, real DOM | 10 tools |
 | **LUNA** | Communication — WhatsApp: search, read, send, files, audio | 7 tools |
 | **ARIA** | Voice — speech in (local Whisper) and out | 2 tools |
-| **KAI** | Memory & research — what NEXUS keeps between sessions | 3 tools |
+| **KAI** | Memory & research — what Paradox keeps between sessions | 3 tools |
 
 Below the console sits the now-playing bar. Windows publishes whatever is playing — Spotify, a
 YouTube tab, VLC — through the system media session; the agent reads the track, artist, album art
@@ -78,7 +78,7 @@ town never mimes work.
 ## Layout
 
 ```
-NEXUS/
+Paradox/
 ├── frontend/          React 19 + TS + Vite — the command centre
 │   ├── src/types/protocol.ts   ← the contract, defined here
 │   ├── src/types/agents.ts     ← roster, stations, tool→agent map
@@ -87,7 +87,7 @@ NEXUS/
     ├── paradox/agent/          observe → act → verify loop, plus recovery
     ├── paradox/computer/       SendInput, UI Automation, OCR, browser CDP, WhatsApp
     ├── paradox/voice/          Whisper (worker process) and Windows speech
-    ├── paradox/memory.py       what NEXUS keeps between sessions
+    ├── paradox/memory.py       what Paradox keeps between sessions
     └── selftest.py             17 read-only probes of the machine layer
 ```
 
@@ -96,5 +96,4 @@ the frontend. That split keeps the model, the OS automation and the permission e
 the renderer, and it is what makes local-first enforceable: screen captures and file contents never
 leave the agent process unless a step genuinely needs the model to look.
 
-> The Python package is still named `paradox` from the earlier spec. Renaming it is mechanical and
-> has not been done yet; everything user-facing says NEXUS.
+> The Python package has always been named `paradox`; the product name matches it end to end.

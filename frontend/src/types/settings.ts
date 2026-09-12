@@ -33,7 +33,7 @@ export interface PanelSettings {
 
 export interface Settings {
   theme: 'dark' | 'light'
-  /** what NEXUS calls the user in the greeting */
+  /** what Paradox calls the user in the greeting */
   userName: string
   backendUrl: string
   autoConnect: boolean
@@ -150,7 +150,7 @@ export const DEFAULT_SETTINGS: Settings = {
   voice: {
     pushToTalkKey: 'Space',
     wakeWordEnabled: false,
-    wakeWord: 'NEXUS',
+    wakeWord: 'PARADOX',
     speakReplies: true,
   },
 }

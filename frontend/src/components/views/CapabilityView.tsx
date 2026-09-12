@@ -154,7 +154,7 @@ export const BROWSER: CapabilityConfig = {
     'Read this page and summarise it',
   ],
   notes: [
-    'NEXUS drives a browser started with automation enabled, using its own profile. The first visit to a site will not be logged in as you.',
+    'Paradox drives a browser started with automation enabled, using its own profile. The first visit to a site will not be logged in as you.',
     'Downloads land in the normal Downloads folder, where AXEL can find them.',
   ],
 }
@@ -197,7 +197,7 @@ export const MEDIA: CapabilityConfig = {
   agent: 'aria',
   title: 'Media & voice',
   blurb:
-    'Playback and volume, plus speech in and out. Hold the talk key and NEXUS transcribes what you said locally with Whisper; replies can be spoken back through the Windows voices.',
+    'Playback and volume, plus speech in and out. Hold the talk key and Paradox transcribes what you said locally with Whisper; replies can be spoken back through the Windows voices.',
   examples: ['Play some music', 'Turn the volume up', 'Open Spotify', 'Read that back to me'],
   extraTools: ['volume', 'media'],
   notes: [

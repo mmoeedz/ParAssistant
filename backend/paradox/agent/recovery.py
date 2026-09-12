@@ -81,13 +81,13 @@ class Recovery:
         if self.consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
             tried = ", ".join(dict.fromkeys(self.failed_tools))
             return (
-                f"\n\n[NEXUS] {self.consecutive_failures} steps in a row have failed ({tried}). "
+                f"\n\n[Paradox] {self.consecutive_failures} steps in a row have failed ({tried}). "
                 "Stop trying variations. Look at the screen, and if the way forward is not "
                 "obvious, tell the user plainly what is in the way and what you would need."
             )
         if self.consecutive_failures == 2:
             return (
-                "\n\n[NEXUS] That is two failures in a row. Observe the current state before "
+                "\n\n[Paradox] That is two failures in a row. Observe the current state before "
                 "acting again — something is probably not where you think it is."
             )
         return None

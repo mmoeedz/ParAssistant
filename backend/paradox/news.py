@@ -25,7 +25,7 @@ FEEDS = [
 
 REFRESH_SECONDS = 900  # 15 minutes
 TIMEOUT = 6.0
-USER_AGENT = "NEXUS/0.1 (personal assistant; RSS reader)"
+USER_AGENT = "Paradox/0.1 (personal assistant; RSS reader)"
 
 _cache: list["Headline"] = []
 _fetched_at = 0.0

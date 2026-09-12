@@ -22,7 +22,7 @@ class AnthropicModel(ModelClient):
         if not CONFIG.api_key:
             raise ModelUnavailable(
                 "ANTHROPIC_API_KEY is not set. Put it in backend/.env or the environment; "
-                "NEXUS cannot decide anything without a model."
+                "Paradox cannot decide anything without a model."
             )
         self.model = model or CONFIG.model
         self.name = f"anthropic:{self.model}"

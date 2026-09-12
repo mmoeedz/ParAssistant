@@ -17,10 +17,10 @@ import threading
 import time
 from pathlib import Path
 
-OUT_DIR = Path(os.getenv("TEMP", tempfile.gettempdir())) / "nexus" / "speech"
+OUT_DIR = Path(os.getenv("TEMP", tempfile.gettempdir())) / "paradox" / "speech"
 
-DEFAULT_PROVIDER = os.getenv("NEXUS_TTS", "sapi")
-DEFAULT_EDGE_VOICE = os.getenv("NEXUS_TTS_VOICE", "en-GB-SoniaNeural")
+DEFAULT_PROVIDER = os.getenv("PARADOX_TTS", "sapi")
+DEFAULT_EDGE_VOICE = os.getenv("PARADOX_TTS_VOICE", "en-GB-SoniaNeural")
 
 # SAPI stream mode: create for write.
 _SSFM_CREATE_FOR_WRITE = 3
@@ -118,7 +118,7 @@ def speak_to_file(text: str, path: Path | None = None, provider: str = DEFAULT_P
     if provider == "edge":
         import edge_tts
 
-        target = path or OUT_DIR / f"nexus-{stamp}.mp3"
+        target = path or OUT_DIR / f"paradox-{stamp}.mp3"
 
         async def render() -> None:
             speech = edge_tts.Communicate(text, voice or DEFAULT_EDGE_VOICE)
@@ -131,7 +131,7 @@ def speak_to_file(text: str, path: Path | None = None, provider: str = DEFAULT_P
     import pythoncom
     import win32com.client
 
-    target = path or OUT_DIR / f"nexus-{stamp}.wav"
+    target = path or OUT_DIR / f"paradox-{stamp}.wav"
     pythoncom.CoInitialize()
     try:
         engine = win32com.client.Dispatch("SAPI.SpVoice")
