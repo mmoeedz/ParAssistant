@@ -1,0 +1,13 @@
+{
+  "name": "paradox",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail -n BACKEND,FRONTEND -c blue,green \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "cd backend && .venv\\Scripts\\python.exe -m paradox",
+    "dev:frontend": "cd frontend && npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
