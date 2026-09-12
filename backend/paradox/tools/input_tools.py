@@ -99,6 +99,12 @@ def type_text(text: str) -> ToolResult:
             label="Refused to type into a password field",
         )
 
+    # The model occasionally emits a literal backslash + "n" instead of an
+    # actual newline character for "press Enter" here (a JSON-escaping slip
+    # in its tool call) — since this tool's own contract says \n means Enter,
+    # honor it either way rather than typing the two characters literally.
+    text = text.replace("\\n", "\n")
+
     win.type_text(text)
     time.sleep(0.15)
 
