@@ -197,13 +197,13 @@ export const MEDIA: CapabilityConfig = {
   agent: 'aria',
   title: 'Media & voice',
   blurb:
-    'Playback and volume, plus speech in and out. Hold the talk key and Paradox transcribes what you said locally with Whisper; replies can be spoken back through the Windows voices.',
+    'Playback and volume, plus speech in and out. Hold the talk key (or say the wake word) and Paradox transcribes what you said with Google Speech-to-Text; replies are spoken back with Google Text-to-Speech.',
   examples: ['Play some music', 'Turn the volume up', 'Open Spotify', 'Read that back to me'],
   extraTools: ['volume', 'media'],
   notes: [
-    'Speech recognition runs on this machine — the audio never leaves it.',
-    'Windows voices are used by default. Neural voices are available but send the text to Microsoft, so they are opt-in.',
+    'Speech recognition and spoken replies both go through Google Cloud — audio and reply text leave this machine to be processed there.',
+    'Windows and Microsoft Edge voices are available as fallbacks if Google is not configured.',
     'Windows exposes no reliable read-back for the volume level, so a volume change is reported as sent, not as verified.',
-    'The wake word is not implemented; use push-to-talk.',
+    'The wake word transcribes every utterance and only acts on what follows it — turning it on sends more audio to Google than push-to-talk does.',
   ],
 }

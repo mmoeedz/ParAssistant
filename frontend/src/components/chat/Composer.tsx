@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Paperclip, Mic, Send, Square } from 'lucide-react'
+import { Paperclip, Mic, Send, Square, Ear } from 'lucide-react'
 import { useSession } from '@/store/session'
 import { useMic } from '@/hooks/useMic'
+import { useWakeWord } from '@/hooks/useWakeWord'
 import { agentSocket } from '@/transport/socket'
 import './chat.css'
 
@@ -20,9 +21,20 @@ export function Composer() {
   const setVoice = useSession((s) => s.setVoice)
   const applyServerEvent = useSession((s) => s.applyServerEvent)
   const pushToTalkKey = useSession((s) => s.settings.voice.pushToTalkKey)
+  const wakeWordEnabled = useSession((s) => s.settings.voice.wakeWordEnabled)
+  const wakeWord = useSession((s) => s.settings.voice.wakeWord)
+  const voiceState = useSession((s) => s.voice)
 
   const mic = useMic((chunk) => agentSocket.send({ type: 'voice.audio', chunk }))
   const running = Boolean(activeTaskId)
+
+  // Always-listening: only while connected (or previewing), never mid push-to-talk,
+  // and muted whenever the agent is talking/transcribing/working so it can't hear itself.
+  useWakeWord({
+    enabled: wakeWordEnabled && !preview && connection === 'online' && !listening,
+    muted: running || voiceState === 'speaking' || voiceState === 'transcribing',
+    onError: (message) => applyServerEvent({ type: 'error', message }),
+  })
 
   // auto-grow
   useEffect(() => {
@@ -124,6 +136,22 @@ export function Composer() {
                 onClick={() => areaRef.current?.focus()}>
           <Paperclip size={15} />
         </button>
+
+        {wakeWordEnabled ? (
+          <span
+            className="cbtn cbtn--wake"
+            data-armed={!listening && !running && voiceState !== 'speaking'}
+            title={
+              voiceState === 'speaking'
+                ? 'Muted while speaking'
+                : running
+                  ? 'Muted while working'
+                  : `Always listening for "${wakeWord}"`
+            }
+          >
+            <Ear size={14} />
+          </span>
+        ) : null}
 
         <button
           type="button"

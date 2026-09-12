@@ -143,9 +143,9 @@ export const DEFAULT_SETTINGS: Settings = {
   providers: {
     model: 'anthropic',
     modelName: 'claude-opus-5',
-    stt: 'faster-whisper (local)',
-    tts: 'piper (local)',
-    ttsVoice: 'en_GB-alba-medium',
+    stt: 'google-cloud-speech',
+    tts: 'google-cloud-tts',
+    ttsVoice: 'en-US-Neural2-C',
   },
   voice: {
     pushToTalkKey: 'Space',

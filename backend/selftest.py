@@ -111,8 +111,10 @@ def main() -> int:
 
     results.append(check("text to speech", tts_check))
     results.append(check("speech to text",
-                         lambda: f"faster-whisper {stt.MODEL_NAME}" if stt.available()
-                         else (_ for _ in ()).throw(RuntimeError("not installed"))))
+                         lambda: f"google-cloud-speech ({stt.MODEL}, {stt.LANGUAGE})" if stt.available()
+                         else (_ for _ in ()).throw(RuntimeError(
+                             "not configured — set GOOGLE_CLOUD_API_KEY or "
+                             "GOOGLE_APPLICATION_CREDENTIALS"))))
 
     def memory_check():
         stats = memory.stats()

@@ -555,8 +555,9 @@ export const useSession = create<SessionState>((set, get) => {
           break
 
         case 'transcript':
-          // What Whisper actually heard, shown before the task starts — the
-          // only way to tell "it understood me" from "it heard something else".
+          // What Google Speech-to-Text actually heard, shown before the task
+          // starts — the only way to tell "it understood me" from "it heard
+          // something else".
           pushLog('ok', 'voice', `heard: "${event.text}"`)
           break
 

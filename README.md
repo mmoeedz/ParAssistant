@@ -14,7 +14,7 @@ A Windows AI computer assistant. You say what you want; it works out how.
 | 2 | Windows computer control | **built** — apps, windows, mouse, keyboard, files |
 | 3 | Screen understanding | **built** — UI Automation, Windows OCR, vision fallback |
 | 4 | Browser agent (ORION) | **built** — Chrome/Edge over the DevTools Protocol |
-| 5 | Voice agent (ARIA) | **built** — local Whisper in, Windows voices out |
+| 5 | Voice agent (ARIA) | **built** — Google Cloud Speech-to-Text in, Google Cloud Text-to-Speech out |
 | 6 | Communication agent (LUNA) | **built** — WhatsApp: search, read, send, files, audio |
 | 7 | File/system agent (AXEL) | **built** |
 | 8 | Real Agent Town behaviour | **built** — idle → wake → walk → work → standby, from real tool calls |
@@ -63,7 +63,7 @@ Paradox Core orchestrates; each agent owns a real slice of the tool registry.
 | **AXEL** | Files & system — search, open, move, unpack, clipboard, "this" | 7 tools |
 | **ORION** | Browser — Chrome/Edge over CDP, real DOM | 10 tools |
 | **LUNA** | Communication — WhatsApp: search, read, send, files, audio | 7 tools |
-| **ARIA** | Voice — speech in (local Whisper) and out | 2 tools |
+| **ARIA** | Voice — speech in and out, both via Google Cloud | 2 tools |
 | **KAI** | Memory & research — what Paradox keeps between sessions | 3 tools |
 
 Below the console sits the now-playing bar. Windows publishes whatever is playing — Spotify, a
@@ -86,7 +86,7 @@ Paradox/
 └── backend/           Python agent: controller, 46 tools, permissions, memory
     ├── paradox/agent/          observe → act → verify loop, plus recovery
     ├── paradox/computer/       SendInput, UI Automation, OCR, browser CDP, WhatsApp
-    ├── paradox/voice/          Whisper (worker process) and Windows speech
+    ├── paradox/voice/          Google Cloud Speech-to-Text and Text-to-Speech
     ├── paradox/memory.py       what Paradox keeps between sessions
     └── selftest.py             17 read-only probes of the machine layer
 ```

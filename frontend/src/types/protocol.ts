@@ -226,9 +226,9 @@ export type ClientEvent =
   | { type: 'prompt'; text: string; source: MessageSource }
   | { type: 'cancel'; taskId?: string }
   | { type: 'confirm.response'; requestId: string; approved: boolean; remember: boolean }
-  | { type: 'voice.start' }
+  | { type: 'voice.start'; wake?: boolean }
   | { type: 'voice.audio'; chunk: string }
-  | { type: 'voice.stop' }
+  | { type: 'voice.stop'; wake?: boolean }
   | { type: 'settings.update'; settings: unknown }
   | { type: 'memory.forget'; id: number }
   | { type: 'memory.clear'; kind?: MemoryKind }
