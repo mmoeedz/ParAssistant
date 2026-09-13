@@ -210,6 +210,11 @@
   gap: var(--sp-3);
   padding: var(--sp-3);
   overflow: hidden;
+  /* Ultra-wide/4K: stop the fixed side columns leaving an absurdly wide,
+     thin center strip — cap and center the whole thing instead. */
+  max-width: 2400px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .wcol {
@@ -260,6 +265,15 @@
   }
   .wcol--left {
     display: none;
+  }
+}
+
+/* A smaller laptop panel/window — narrower still, but this is the floor:
+   below this a 2-column layout has nowhere left to give, so the right
+   column is trimmed a bit further rather than the layout breaking down. */
+@media (max-width: 1000px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) 320px;
   }
 }
 
