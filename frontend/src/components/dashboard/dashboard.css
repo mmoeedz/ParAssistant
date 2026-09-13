@@ -615,12 +615,6 @@
   clip-path: var(--core-cut);
   min-height: 240px;
   isolation: isolate;
-  /* Stays at its own natural height rather than stretching to match the
-     cards column — dragging the panel taller grows the cards (see
-     .net__cards), not this. The wire endpoints track this box's actual
-     measured center (AgentNetwork.tsx), not an assumption that it is as
-     tall as the cards column. */
-  align-self: start;
   /* The header inside scales off this panel's own width, not the viewport's —
      how wide it gets depends on the whole three-column layout, so a viewport
      media query is the wrong measure. */

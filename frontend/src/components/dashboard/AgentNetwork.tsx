@@ -42,10 +42,6 @@ interface Wires {
   w: number
   h: number
   ys: number[]
-  /** Where the wires converge, vertically — the core box's own center, not
-   *  assumed to be the rail's midpoint (the core box no longer stretches to
-   *  match the cards' height, so those aren't the same point any more). */
-  coreY: number
 }
 
 /**
@@ -78,22 +74,17 @@ export function AgentNetwork({ style }: { style?: CSSProperties } = {}) {
 
   const cardsRef = useRef<HTMLDivElement>(null)
   const linksRef = useRef<SVGSVGElement>(null)
-  const coreRef = useRef<HTMLDivElement>(null)
-  const [wires, setWires] = useState<Wires>({ w: 104, h: 260, ys: [], coreY: 130 })
+  const [wires, setWires] = useState<Wires>({ w: 104, h: 260, ys: [] })
 
   /**
    * The connectors are measured rather than assumed. Card height moves with the
    * font and with the panel's own height, so coordinates written by hand drift
-   * out of line with the dots they are supposed to leave from. The core box no
-   * longer stretches to match the cards (it stays at its own natural height —
-   * see .core { align-self: start }), so its center is measured too rather
-   * than assumed to sit at the rail's midpoint.
+   * out of line with the dots they are supposed to leave from.
    */
   useLayoutEffect(() => {
     const cards = cardsRef.current
     const svg = linksRef.current
-    const core = coreRef.current
-    if (!cards || !svg || !core) return
+    if (!cards || !svg) return
 
     const measure = () => {
       const base = svg.getBoundingClientRect()
@@ -107,12 +98,8 @@ export function AgentNetwork({ style }: { style?: CSSProperties } = {}) {
         const r = el.getBoundingClientRect()
         return Math.round((r.top + r.height / 2 - base.top) / scale)
       })
-      const coreRect = core.getBoundingClientRect()
-      const coreY = Math.round((coreRect.top + coreRect.height / 2 - base.top) / scale)
       setWires((prev) =>
-        prev.w === w && prev.h === h && prev.coreY === coreY && sameYs(prev.ys, ys)
-          ? prev
-          : { w, h, ys, coreY },
+        prev.w === w && prev.h === h && sameYs(prev.ys, ys) ? prev : { w, h, ys },
       )
     }
 
@@ -120,7 +107,6 @@ export function AgentNetwork({ style }: { style?: CSSProperties } = {}) {
     const observer = new ResizeObserver(measure)
     observer.observe(cards)
     observer.observe(svg)
-    observer.observe(core)
     for (const card of cards.children) observer.observe(card)
     return () => observer.disconnect()
   }, [shown.length])
@@ -189,7 +175,7 @@ export function AgentNetwork({ style }: { style?: CSSProperties } = {}) {
             // card, one smooth S-bend across the gap, then a run into the
             // core's edge. Each cable leaves its own column so the four
             // bends stay separate instead of overlapping into a bundle.
-            const end = wires.coreY + (i - (wires.ys.length - 1) / 2) * 15
+            const end = wires.h / 2 + (i - (wires.ys.length - 1) / 2) * 15
             const x1 = 16 + i * 6
             const x2 = wires.w - 14
             const k = (x2 - x1) * 0.5
@@ -214,7 +200,7 @@ export function AgentNetwork({ style }: { style?: CSSProperties } = {}) {
           })}
         </svg>
 
-        <div className="core" data-busy={busy} ref={coreRef}>
+        <div className="core" data-busy={busy}>
           <div className="core__head">
             <div className="core__title">PARADOX CORE</div>
 
