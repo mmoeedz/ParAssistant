@@ -323,6 +323,23 @@
   background: var(--voice-soft);
 }
 
+.cbtn--wake {
+  color: var(--text-faint);
+  opacity: 0.55;
+  cursor: default;
+}
+
+.cbtn--wake[data-armed='true'] {
+  color: var(--voice);
+  opacity: 1;
+  animation: wake-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes wake-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
 .mic__ring {
   position: absolute;
   inset: -3px;

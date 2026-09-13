@@ -38,9 +38,8 @@ paradox/
 ├── models/          provider abstraction; Claude behind base.ModelClient
 ├── tools/           46 capabilities, each with a permission category
 ├── voice/
-│   ├── tts.py             Windows SAPI (local) or Edge neural voices (opt-in)
-│   ├── stt.py             faster-whisper, managed as a worker process
-│   └── whisper_worker.py  where the speech model actually lives
+│   ├── tts.py             Google Cloud Text-to-Speech (default), or SAPI/Edge as fallbacks
+│   └── stt.py             Google Cloud Speech-to-Text, streamed as audio arrives
 └── computer/
     ├── win.py       windows, input (raw SendInput), screen capture, media keys
     ├── uia.py       UI Automation: shallow reads and deep scans
@@ -87,10 +86,11 @@ identical tool call, retries genuinely transient failures once (COM races,
 sockets not up yet), and escalates after a streak of failures. The model is told
 to recover; this is what happens when it does not.
 
-**Speech runs in its own process.** CTranslate2 takes the interpreter down —
-silently, no traceback — when its model loads on a background thread beside a
-running asyncio server. The agent always transcribes off-thread, so Whisper
-lives in `whisper_worker.py` and is kept warm between phrases.
+**Speech streams as it is captured.** Google's Speech-to-Text client is a
+blocking, generator-in/iterator-out gRPC call, not natively async — a
+`StreamingSession` runs it on its own thread, fed from a queue the WebSocket
+handler pushes audio chunks into as they arrive, so recognition finishes
+transcribing most of an utterance before the user has stopped talking.
 
 **Deletes go to the Recycle Bin.** `SHFileOperation` with `FOF_ALLOWUNDO`. There
 is no hard-delete path in the tool surface.
@@ -137,8 +137,12 @@ refuses to act rather than pretending.
 | `PARADOX_MODEL` | per-provider default | Any model id the chosen provider serves. |
 | `PARADOX_EFFORT` | `high` | `low`–`max`. Anthropic only. |
 | `PARADOX_GEMINI_THINKING` | `low` | `minimal`/`low`/`medium`/`high`. Gemini only. |
-| `PARADOX_STT_MODEL` | `base` | Whisper size: `tiny`–`large-v3`. |
-| `PARADOX_TTS` | `sapi` | `sapi` (local) or `edge` (neural, sends text to Microsoft). |
+| `GOOGLE_CLOUD_API_KEY` | — | A **Cloud** API key (Speech-to-Text + Text-to-Speech APIs enabled, billing on) for voice. **Not the same key/product as `GEMINI_API_KEY`** — that one is the Generative Language API and cannot call Cloud Speech/TTS. |
+| `GOOGLE_APPLICATION_CREDENTIALS` | — | Alternative to the key above: path to a service-account JSON file, if that's how your GCP project is set up. |
+| `PARADOX_STT_LANGUAGE` | `en-US` | BCP-47 language code Google Speech-to-Text listens for. |
+| `PARADOX_STT_MODEL` | `latest_long` | Google Speech-to-Text model name — `latest_long` handles pauses/conversational speech; `latest_short` suits single short commands. |
+| `PARADOX_TTS` | `google` | `google` (Cloud TTS, needs the key above), `sapi` (local, English voices only), or `edge` (Microsoft neural, sends text to Microsoft). |
+| `PARADOX_TTS_VOICE` | `en-US-Neural2-C` | Any voice name Google Cloud TTS serves (`client.list_voices()`), or the matching name for `sapi`/`edge` if you switch providers. |
 | `PARADOX_MEMORY` | `~/.paradox/memory.db` | Where memory lives. |
 
 Claude runs with adaptive thinking and server-side refusal fallbacks; the chain

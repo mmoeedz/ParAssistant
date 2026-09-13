@@ -90,6 +90,16 @@ def click(x: int, y: int, button: str = "left", double: bool = False,
     )
 
 
+def _normalize_enter(text: str) -> str:
+    """The model occasionally emits a literal backslash + "n" instead of an
+    actual newline character for "press Enter" (a JSON-escaping slip in its
+    tool call) — since this tool's own contract says \\n means Enter, honor
+    it either way rather than typing the two characters literally. Used both
+    for the actual keystrokes and for the activity-log label, so what is
+    announced always matches what is typed."""
+    return text.replace("\\n", "\n")
+
+
 def type_text(text: str) -> ToolResult:
     focused = uia.focused_element(win.active_window().hwnd) if win.active_window() else None
 
@@ -98,6 +108,8 @@ def type_text(text: str) -> ToolResult:
             "that is a password field — I do not type credentials. Ask the user to type it.",
             label="Refused to type into a password field",
         )
+
+    text = _normalize_enter(text)
 
     win.type_text(text)
     time.sleep(0.15)
@@ -213,7 +225,7 @@ TOOLS = [
         schema=schema({"text": string("Exact text to type. Use \\n for Enter.")}, ["text"]),
         handler=type_text,
         category="input_control",
-        label=lambda a: f"Typing {(a.get('text') or '')[:32]!r}",
+        label=lambda a: f"Typing {_normalize_enter(a.get('text') or '')[:32]!r}",
     ),
     Tool(
         name="press_keys",

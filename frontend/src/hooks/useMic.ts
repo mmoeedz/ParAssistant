@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { recorderOptions } from './audioFormat'
 
 /**
  * Real microphone capture with a live level meter.
@@ -64,7 +65,7 @@ export function useMic(onChunk?: (base64: string) => void) {
       tick()
 
       if (chunkRef.current && typeof MediaRecorder !== 'undefined') {
-        const recorder = new MediaRecorder(stream)
+        const recorder = new MediaRecorder(stream, recorderOptions())
         recorder.ondataavailable = async (e) => {
           if (!e.data.size || !chunkRef.current) return
           const buf = await e.data.arrayBuffer()

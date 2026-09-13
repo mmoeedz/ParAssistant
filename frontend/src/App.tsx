@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
+import { GripHorizontal } from 'lucide-react'
 import { useSession } from '@/store/session'
+import { useVerticalSplit } from '@/hooks/useVerticalSplit'
 import { TitleBar } from '@/components/layout/TitleBar'
 import { PreviewBar } from '@/components/layout/PreviewBar'
 import {
@@ -23,6 +25,13 @@ export default function App() {
   const activeTaskId = useSession((s) => s.activeTaskId)
   const cancelTask = useSession((s) => s.cancelTask)
   const panels = useSession((s) => s.settings.panels)
+
+  // The Agent Network card's height, draggable against Agent Town below it —
+  // different monitors give this column very different total heights, so a
+  // fixed split never suits all of them. 320 is also the floor: below that
+  // the fourth agent card starts clipping, so shrinking only ever reclaims
+  // space this panel doesn't need, never space its own content does.
+  const split = useVerticalSplit('paradox.layout.networkHeight.v1', 320, 320, 220)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -52,9 +61,23 @@ export default function App() {
             {panels.headlines ? <Headlines /> : null}
           </div>
 
-          <div className="wcol wcol--center">
-            <AgentNetwork />
-            {panels.agentTown ? <AgentTown /> : null}
+          <div className="wcol wcol--center" ref={split.containerRef}>
+            <AgentNetwork style={panels.agentTown ? { height: split.size, flex: 'none' } : undefined} />
+            {panels.agentTown ? (
+              <>
+                <div
+                  className="vsplit-handle"
+                  data-dragging={split.dragging}
+                  role="separator"
+                  aria-orientation="horizontal"
+                  aria-label="Resize Agent Network"
+                  {...split.handleProps}
+                >
+                  <GripHorizontal size={12} />
+                </div>
+                <AgentTown />
+              </>
+            ) : null}
           </div>
 
           {/* Console on top, the media session under it while something plays. */}

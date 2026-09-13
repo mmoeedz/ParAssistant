@@ -145,7 +145,7 @@ export function SettingsView() {
             <span className="section-title">Voice</span>
           </div>
           <div className="rows rows--2">
-            <Field label="Speech to text (local)">
+            <Field label="Speech to text">
               <input
                 className="input"
                 value={settings.providers.stt}
@@ -197,9 +197,13 @@ export function SettingsView() {
           <div className="danger-note" style={{ background: 'transparent' }}>
             <TriangleAlert size={14} />
             <span>
-              Speech recognition runs on this machine, so the audio never leaves it. The wake word is
-              not implemented — use push-to-talk. These provider names describe the agent's
-              configuration; it reads the real values from its own environment.
+              Speech recognition and spoken replies both go through Google Cloud — audio and reply
+              text leave this machine to be processed there. With the wake word on, the mic stays
+              open while this tab is open: every phrase you say is transcribed and checked for the
+              wake word, and only what you say after it is ever acted on — this sends more audio to
+              Google than push-to-talk, which only transcribes while you hold the key. These
+              provider names describe the agent's configuration; it reads the real values from its
+              own environment.
             </span>
           </div>
         </section>

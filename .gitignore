@@ -3,6 +3,9 @@
 .env.local
 *.env
 !.env.example
+# Google Cloud service-account keys (GOOGLE_APPLICATION_CREDENTIALS)
+*service-account*.json
+backend/*.json
 
 # Python
 .venv/

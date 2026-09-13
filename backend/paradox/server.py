@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from typing import Any
 
 import websockets
@@ -21,6 +22,20 @@ from .tools import Registry, Tool, build_registry
 log = logging.getLogger("paradox.server")
 
 
+def _after_wake_word(text: str, wake_word: str) -> str | None:
+    """The command spoken after the wake word, or None if it was never said.
+
+    "" is a valid return (the user said only the wake word) and is treated by
+    the caller the same as None — there is nothing to act on either way.
+    """
+    if not text or not wake_word:
+        return None
+    match = re.search(rf"\b{re.escape(wake_word)}\b", text, re.IGNORECASE)
+    if not match:
+        return None
+    return text[match.end():].strip(" ,.!:;-—")
+
+
 class Session:
     """Everything one connected UI owns: history, policy, the running task."""
 
@@ -34,9 +49,13 @@ class Session:
         self.outbox: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
         self.task_handle: asyncio.Task[None] | None = None
         self.pending_confirmations: dict[str, asyncio.Future[bool]] = {}
-        # Voice: base64 chunks arrive while the user holds the key.
-        self.voice_chunks: list[str] = []
+        # Voice: audio streams to Google Speech-to-Text chunk by chunk while
+        # the user holds the key, or while the UI is auto-segmenting speech
+        # for the always-listening mode — see StreamingSession in voice/stt.py.
+        self.voice_session: object | None = None
+        self.voice_wake_mode = False
         self.speak_replies = True
+        self.wake_word = "paradox"
         self.controller = Controller(self)
 
     # ------------------------------------------------------------ outbound --
@@ -146,7 +165,9 @@ class Session:
         elif kind == "settings.update":
             settings = event.get("settings") or {}
             self.permissions.update_from_settings(settings)
-            self.speak_replies = bool((settings.get("voice") or {}).get("speakReplies", True))
+            voice_settings = settings.get("voice") or {}
+            self.speak_replies = bool(voice_settings.get("speakReplies", True))
+            self.wake_word = str(voice_settings.get("wakeWord") or "paradox").strip().lower() or "paradox"
             log.info("settings applied from the UI")
         elif kind in ("voice.start", "voice.audio", "voice.stop"):
             await self._on_voice(kind, event)
@@ -225,40 +246,65 @@ class Session:
         from .voice import stt
 
         if kind == "voice.start":
-            self.voice_chunks = []
+            self.voice_wake_mode = bool(event.get("wake"))
+            # Opens a Google Speech-to-Text streaming session right away —
+            # audio is transcribed as it arrives, not only once recording
+            # stops, so most of the work is already done by the time the
+            # user finishes talking.
+            self.voice_session = stt.StreamingSession() if stt.available() else None
             self.send(protocol.voice_state("listening"))
             return
 
         if kind == "voice.audio":
             chunk = event.get("chunk")
-            if isinstance(chunk, str):
-                self.voice_chunks.append(chunk)
+            if isinstance(chunk, str) and self.voice_session is not None:
+                import base64
+
+                self.voice_session.push(base64.b64decode(chunk))
             return
 
         # voice.stop
-        chunks, self.voice_chunks = self.voice_chunks, []
-        if not chunks:
-            self.send(protocol.voice_state("off"))
-            return
+        session, self.voice_session = self.voice_session, None
+        wake_mode = self.voice_wake_mode or bool(event.get("wake"))
 
-        if not stt.available():
+        if session is None:
             self.send(protocol.voice_state("off"))
-            self.send(protocol.error(
-                "No speech-to-text engine is installed in the agent, so the recording could not "
-                "be transcribed. Nothing was sent."
-            ))
+            # Always-listening runs this on every utterance it hears — a hard
+            # error every time would be noise, not signal, so only push-to-talk
+            # (a single deliberate recording) surfaces it.
+            if not wake_mode:
+                self.send(protocol.error(
+                    "Google Speech-to-Text is not configured in the agent (set "
+                    "GOOGLE_CLOUD_API_KEY or GOOGLE_APPLICATION_CREDENTIALS), so the recording "
+                    "could not be transcribed. Nothing was sent."
+                ))
             return
 
         self.send(protocol.voice_state("transcribing"))
         try:
-            result = await asyncio.to_thread(stt.transcribe_chunks, chunks)
+            result = await asyncio.to_thread(session.finish)
         except Exception as exc:  # noqa: BLE001
             self.send(protocol.voice_state("off"))
-            self.send(protocol.error(f"Could not transcribe that: {exc}"))
+            if not wake_mode:
+                self.send(protocol.error(f"Could not transcribe that: {exc}"))
             return
 
         self.send(protocol.voice_state("off"))
         text = result.text.strip()
+
+        if wake_mode:
+            # Always-listening: every utterance gets transcribed, but only
+            # the part after the wake word is ever acted on — ambient speech
+            # that never says "paradox" is dropped here, silently.
+            command = _after_wake_word(text, self.wake_word)
+            if not command:
+                return
+            log.info("wake word heard, transcribed %.1fs of audio: %r",
+                      result.seconds_of_audio, command[:80])
+            self.send(protocol.transcript(command))
+            await self._on_prompt({"text": command, "source": "voice"})
+            return
+
         if not text:
             self.send(protocol.error("I heard the microphone but no words came through."))
             return

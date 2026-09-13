@@ -95,7 +95,15 @@ class Controller:
         try:
             from ..voice import tts
 
-            tts.speak(text)
+            # tts.speak() plays on a background thread; on_done fires there
+            # too, so it has to hop back onto this loop's thread to emit.
+            loop = asyncio.get_running_loop()
+
+            def done() -> None:
+                loop.call_soon_threadsafe(self.emit, protocol.voice_state("off"))
+
+            self.emit(protocol.voice_state("speaking"))
+            tts.speak(text, on_done=done)
         except Exception:  # noqa: BLE001
             log.debug("could not speak the reply", exc_info=True)
 
