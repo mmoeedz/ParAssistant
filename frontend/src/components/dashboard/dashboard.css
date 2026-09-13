@@ -389,6 +389,12 @@
   grid-template-columns: 246px 92px minmax(0, 1fr);
   gap: 0;
   padding: 0 var(--sp-4) var(--sp-4);
+  /* Stretch to fill however tall .net actually is (draggable — see
+     useVerticalSplit) instead of sitting at natural height with dead space
+     below: the cards (flex: 1 1 0 already) and the core orb (already
+     percentage-sized off .core's own box) then scale with it for free.
+     min-height keeps this floored at natural size if .net is ever shorter. */
+  flex: 1;
   min-height: 282px;
 }
 
