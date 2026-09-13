@@ -231,7 +231,10 @@ class Controller:
             step.status = "failed"
             step.evidence = f"timed out after {CONFIG.tool_timeout:g}s"
             self.emit(protocol.task_step(task.id, step))
-            return self._result_block(call.id, f"{call.name} timed out", error=True)
+            message = f"{call.name} timed out after {CONFIG.tool_timeout:g}s"
+            if tool.timeout_hint:
+                message += f". {tool.timeout_hint}"
+            return self._result_block(call.id, message, error=True)
         except TypeError as exc:
             step.status = "failed"
             step.evidence = "bad arguments"

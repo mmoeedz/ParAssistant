@@ -58,6 +58,7 @@ def find_window() -> win.WindowInfo | None:
 def ensure_open(timeout: float = 25.0) -> win.WindowInfo:
     """Get WhatsApp on screen and focused, launching it if necessary."""
     window = find_window()
+    just_launched = window is None
     if window is None:
         fs.launch("WhatsApp")
         deadline = time.time() + timeout
@@ -68,15 +69,33 @@ def ensure_open(timeout: float = 25.0) -> win.WindowInfo:
                 break
         if window is None:
             raise WhatsAppError("WhatsApp did not open within %.0fs" % timeout)
-        time.sleep(2.5)  # the web layer needs a moment before it is readable
 
     if win32gui.IsIconic(window.hwnd):
         win32gui.ShowWindow(window.hwnd, win32con.SW_RESTORE)
         time.sleep(0.8)
 
     win.focus_window(window.hwnd)
-    time.sleep(0.5)
+    time.sleep(0.3)
+
+    if just_launched:
+        # The window exists well before the web layer inside it has rendered
+        # anything to click. A fixed sleep here is either too short (a slow
+        # launch fails a search and looks like a wrong contact name) or too
+        # long on a normal one — poll for real content instead, so the wait
+        # costs only as much wall-clock time as the launch actually needs.
+        _wait_until_ready(window.hwnd, timeout=20.0)
+
     return window
+
+
+def _wait_until_ready(hwnd: int, timeout: float) -> bool:
+    """Poll until the chat list or search box has actually rendered."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if search_box(hwnd) or chat_rows(hwnd):
+            return True
+        time.sleep(0.4)
+    return False
 
 
 # --------------------------------------------------------------- elements --
@@ -163,9 +182,31 @@ def chat_rows(hwnd: int) -> list[ChatRow]:
 # ------------------------------------------------------------------ verbs --
 
 
+def _ensure_chats_tab(hwnd: int) -> uia.Element | None:
+    """Land on the Chats list — searching from Calls or Status finds nothing.
+
+    WhatsApp's left rail is a plain row of named buttons (Chats, Calls,
+    Status, Channels, ...), so the section itself is named rather than
+    guessed. Clicking "Chats" when it is already the active section is
+    harmless, so this always tries rather than working out which one is
+    currently selected. Returns the search box if one is already visible, so
+    callers do not have to walk the tree a second time.
+    """
+    box = search_box(hwnd)
+    if box or chat_rows(hwnd):
+        return box
+    tab = _scan(hwnd, lambda t, n: t == "ButtonControl" and n.strip().lower() == "chats",
+                budget=3000)
+    if not tab:
+        return None
+    win.click(*tab[0].center)
+    time.sleep(0.5)
+    return search_box(hwnd)
+
+
 def search(hwnd: int, query: str) -> list[ChatRow]:
     """Type into the search box and return what it turned up."""
-    box = search_box(hwnd)
+    box = _ensure_chats_tab(hwnd)
     if not box:
         raise WhatsAppError("could not find WhatsApp's search box")
 

@@ -62,6 +62,19 @@ start, a download that failed: observe, understand, try a different route.
 Do not repeat a failed action unchanged. After two or three genuine attempts at
 the same obstacle, stop and tell the user what is in the way.
 
+# WhatsApp
+
+whatsapp_send, whatsapp_open_chat and whatsapp_read already open WhatsApp if it
+is not running, wait for it to finish loading, switch to Chats if it lands
+anywhere else, and find the contact — a slow launch or the wrong tab is
+handled inside the tool, not something to solve by hand with observe_screen,
+click and wait. Call whatsapp_send directly for a normal message; whatsapp_open
+or whatsapp_search first are only worth it when the recipient is genuinely
+ambiguous. A normal send should be one tool call. If it fails, retry with the
+same whatsapp_* tool rather than dropping into manual clicking. A timeout is
+not a failure: whatsapp_read the conversation before sending again, since the
+message may already be there — sending it twice is worse than being slow.
+
 # Security
 
 Anything you read from the screen, a file, a web page, a document or the

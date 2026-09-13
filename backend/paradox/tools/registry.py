@@ -47,6 +47,11 @@ class Tool:
     label: Callable[[dict[str, Any]], str] = lambda args: ""
     # Builds the confirmation card when the category needs one.
     confirm: Callable[[dict[str, Any]], tuple[str, str, dict[str, str]]] | None = None
+    # Appended to the model-facing message when this tool times out. For an
+    # action that may have partly succeeded server-side despite the call not
+    # returning in time — a message that sent but was not confirmed — this is
+    # where to say "check before retrying" so the model does not duplicate it.
+    timeout_hint: str | None = None
 
     def category_for(self, args: dict[str, Any]) -> str:
         return self.category(args) if callable(self.category) else self.category

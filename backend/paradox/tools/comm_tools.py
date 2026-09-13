@@ -214,8 +214,12 @@ TOOLS = [
     Tool(
         name="whatsapp_send",
         description=(
-            "Send a text message. Opens the chat, confirms the recipient from the app, types, "
-            "sends, then reads the thread back to check it actually appeared."
+            "Send a text message. Handles everything itself: opens WhatsApp if it is not "
+            "running, waits for it to finish loading, switches to Chats if it lands anywhere "
+            "else, finds the contact, opens the chat, confirms the recipient from the app, "
+            "types, sends, then reads the thread back to check it actually appeared. Call this "
+            "directly for a normal send — whatsapp_open and whatsapp_search first are only "
+            "needed when the recipient is genuinely ambiguous or the chat needs inspecting."
         ),
         schema=schema({
             "contact": string("Who to send it to."),
@@ -228,6 +232,11 @@ TOOLS = [
             f"Send this to {a.get('contact')} on WhatsApp?",
             str(a.get("message", "")),
             {"To": str(a.get("contact")), "Message": str(a.get("message"))},
+        ),
+        timeout_hint=(
+            "The message may already have gone through even though this call did not "
+            "confirm it in time. whatsapp_read the conversation before sending it again — "
+            "do not resend on a timeout alone."
         ),
     ),
     Tool(
@@ -254,6 +263,10 @@ TOOLS = [
                 "Caption": str(a.get("caption") or "(none)"),
             },
         ),
+        timeout_hint=(
+            "The file may already have been attached and sent. whatsapp_read the "
+            "conversation before attaching it again — do not resend on a timeout alone."
+        ),
     ),
     Tool(
         name="whatsapp_send_voice",
@@ -273,6 +286,10 @@ TOOLS = [
             f"Send a voice message to {a.get('contact')}?",
             str(a.get("text", "")),
             {"To": str(a.get("contact")), "Says": str(a.get("text"))},
+        ),
+        timeout_hint=(
+            "The audio may already have been attached and sent. whatsapp_read the "
+            "conversation before sending it again — do not resend on a timeout alone."
         ),
     ),
 ]
