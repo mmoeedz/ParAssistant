@@ -178,6 +178,10 @@ class Session:
         elif kind == "memory.clear":
             memory.clear(event.get("kind"))
             self.send_memory()
+        elif kind == "ping":
+            ping_id = event.get("id")
+            if isinstance(ping_id, str) and ping_id:
+                self.send(protocol.pong(ping_id))
         else:
             log.warning("unknown client event: %s", kind)
 

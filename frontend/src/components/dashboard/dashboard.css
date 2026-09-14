@@ -83,6 +83,36 @@
   stroke: none;
 }
 
+/* ----------------------------------------------------- hardware readout -- */
+
+.hwgrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-2);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+}
+
+.hwcell {
+  text-align: center;
+}
+
+.hwcell__value {
+  font-family: var(--font-hud);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.hwcell__label {
+  margin-top: 1px;
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
 /* ----------------------------------------------------------- task card -- */
 
 .taskcard {

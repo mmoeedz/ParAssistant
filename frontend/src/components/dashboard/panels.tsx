@@ -234,12 +234,13 @@ export function SystemMonitor() {
                 <Radio size={12} />
                 <span>↓ {bytes(stats.network.down)}/s</span>
                 <span>↑ {bytes(stats.network.up)}/s</span>
-                {stats.temperature ? <span>{stats.temperature}°C</span> : null}
+                {stats.cpuTempC ? <span>CPU {stats.cpuTempC}°C</span> : null}
+                {stats.gpuTempC ? <span>GPU {stats.gpuTempC}°C</span> : null}
               </div>
             ) : null}
             <p className="meters__note">
-              GPU and temperature need a vendor library Windows does not expose here, so they are
-              left out rather than guessed.
+              GPU load and both temperatures come from Windows performance counters and are only
+              shown once a reading actually comes back.
             </p>
           </div>
         )}

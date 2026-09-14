@@ -96,6 +96,8 @@ interface SessionState {
   observation: ScreenObservation | null
   voice: VoiceState
   stats: SystemStats | null
+  /** Round-trip time to the agent, from the last answered ping. Null until one lands. */
+  latencyMs: number | null
   headlines: Headline[]
   /** What is playing on the machine, or null when nothing is. */
   media: NowPlaying | null
@@ -127,6 +129,39 @@ interface SessionState {
 
 function isTerminal(status?: Task['status']) {
   return status === 'succeeded' || status === 'failed' || status === 'cancelled'
+}
+
+/**
+ * Connection latency: a plain WebSocket ping/pong, timed with performance.now()
+ * on this side. It measures the real round trip through the same pipeline
+ * every other event travels — not a synthetic number.
+ */
+const PING_INTERVAL_MS = 4000
+const PING_STALE_MS = 20_000
+const pendingPings = new Map<string, number>()
+let pingTimer: ReturnType<typeof setInterval> | null = null
+
+function sendPing() {
+  if (!agentSocket.isOpen) return
+  const now = performance.now()
+  for (const [id, sentAt] of pendingPings) {
+    if (now - sentAt > PING_STALE_MS) pendingPings.delete(id) // its pong is never coming
+  }
+  const id = uid('ping')
+  pendingPings.set(id, now)
+  agentSocket.send({ type: 'ping', id })
+}
+
+function startPingLoop() {
+  if (pingTimer) return
+  sendPing()
+  pingTimer = setInterval(sendPing, PING_INTERVAL_MS)
+}
+
+function stopPingLoop() {
+  if (pingTimer) clearInterval(pingTimer)
+  pingTimer = null
+  pendingPings.clear()
 }
 
 /** Timers driving wake → walk → work. Cleared whenever an agent is retasked. */
@@ -229,6 +264,7 @@ export const useSession = create<SessionState>((set, get) => {
     observation: null,
     voice: 'off',
     stats: null,
+    latencyMs: null,
     headlines: [],
     media: null,
     memory: { facts: [], stats: null },
@@ -244,8 +280,9 @@ export const useSession = create<SessionState>((set, get) => {
     connect: () => agentSocket.connect(get().settings.backendUrl),
 
     disconnect: () => {
+      stopPingLoop()
       agentSocket.disconnect()
-      set({ connection: 'idle', backendInfo: null, stats: null, media: null })
+      set({ connection: 'idle', backendInfo: null, stats: null, media: null, latencyMs: null })
     },
 
     submitPrompt: (text, source = 'text') => {
@@ -379,8 +416,16 @@ export const useSession = create<SessionState>((set, get) => {
       timers.clear()
 
       if (on) {
+        stopPingLoop()
         agentSocket.disconnect()
-        set({ preview: true, connection: 'idle', backendInfo: null, stats: null, ...reset })
+        set({
+          preview: true,
+          connection: 'idle',
+          backendInfo: null,
+          stats: null,
+          latencyMs: null,
+          ...reset,
+        })
         void import('@/transport/preview').then((m) => m.startAmbient(get().applyServerEvent))
         return
       }
@@ -554,6 +599,15 @@ export const useSession = create<SessionState>((set, get) => {
           set({ voice: event.state })
           break
 
+        case 'pong': {
+          const sentAt = pendingPings.get(event.id)
+          if (sentAt !== undefined) {
+            pendingPings.delete(event.id)
+            set({ latencyMs: Math.round(performance.now() - sentAt) })
+          }
+          break
+        }
+
         case 'transcript':
           // What Google Speech-to-Text actually heard, shown before the task
           // starts — the only way to tell "it understood me" from "it heard
@@ -593,12 +647,14 @@ export function bootstrapTransport() {
       // The UI owns the permission settings; the agent enforces them. Push them
       // on every connect so a restarted agent never runs on stale policy.
       agentSocket.send({ type: 'settings.update', settings: useSession.getState().settings })
+      startPingLoop()
     }
     if (state === 'offline') {
       useSession.getState().log('warn', 'transport', 'agent connection lost')
       // Nothing is known about the machine now, the music included — a bar
       // left showing the last track would be claiming something it cannot see.
-      useSession.setState({ stats: null, media: null })
+      stopPingLoop()
+      useSession.setState({ stats: null, media: null, latencyMs: null })
     }
   }
   const { settings, connect } = useSession.getState()

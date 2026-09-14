@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Activity, ArrowRight, Gauge, ListChecks, Newspaper, Target } from 'lucide-react'
 import { useSession } from '@/store/session'
+import { useFps } from '@/hooks/useFps'
 import { AGENTS } from '@/types/agents'
 import { statusLabel } from './panels'
 import { ARCS, NODES, TONE_VAR, arcPath, worldDots } from './world'
@@ -54,9 +55,60 @@ function Sparkline({ points }: { points: number[] }) {
   )
 }
 
+/** Small metric readout, distinct from the numeric-only `Stat` below it. */
+function HwStat({
+  label,
+  value,
+  tone,
+  title,
+}: {
+  label: string
+  value: string
+  tone?: string
+  title?: string
+}) {
+  return (
+    <div className="hwcell" title={title}>
+      <div className="hwcell__value" style={tone ? { color: tone } : undefined}>
+        {value}
+      </div>
+      <div className="hwcell__label">{label}</div>
+    </div>
+  )
+}
+
+// Thresholds are a laptop-CPU rule of thumb (throttling risk climbs past
+// ~85°C, worth a look past ~70°C) — not a spec pulled from this machine.
+function tempTone(c: number | undefined): string | undefined {
+  if (c === undefined) return undefined
+  if (c >= 85) return 'var(--danger)'
+  if (c >= 70) return 'var(--warn)'
+  return undefined
+}
+
+// The agent runs on localhost by default, so healthy latency here is a few
+// ms; these bands only matter once the connection is remote or congested.
+function latencyTone(ms: number | null): string | undefined {
+  if (ms === null) return undefined
+  if (ms >= 300) return 'var(--danger)'
+  if (ms >= 120) return 'var(--warn)'
+  return undefined
+}
+
+function fpsTone(fps: number | null): string | undefined {
+  if (fps === null) return undefined
+  if (fps < 30) return 'var(--danger)'
+  if (fps < 50) return 'var(--warn)'
+  return undefined
+}
+
 export function SystemOverview() {
   const stats = useSession((s) => s.stats)
+  const latencyMs = useSession((s) => s.latencyMs)
   const history = useRef<number[]>([])
+  // This interface's own render rate — see the hook for why that, and not a
+  // fabricated "system FPS", is the honest thing to show here.
+  const fps = useFps()
 
   if (stats) {
     const last = history.current[history.current.length - 1]
@@ -79,6 +131,33 @@ export function SystemOverview() {
           <Ring label="DISK" value={stats?.disk.percent ?? null} tone="var(--accent)" />
         </div>
         <Sparkline points={history.current} />
+
+        <div className="hwgrid">
+          <HwStat
+            label="FPS"
+            value={fps === null ? '—' : String(fps)}
+            tone={fpsTone(fps)}
+            title="This interface's own render rate — there is no single Windows-wide FPS to read"
+          />
+          <HwStat
+            label="CPU °C"
+            value={stats?.cpuTempC !== undefined ? `${stats.cpuTempC}°` : '—'}
+            tone={tempTone(stats?.cpuTempC)}
+            title="Hottest CPU thermal zone this machine exposes"
+          />
+          <HwStat
+            label="GPU °C"
+            value={stats?.gpuTempC !== undefined ? `${stats.gpuTempC}°` : '—'}
+            tone={tempTone(stats?.gpuTempC)}
+            title="Hottest GPU thermal zone this machine exposes"
+          />
+          <HwStat
+            label="LATENCY"
+            value={latencyMs === null ? '—' : `${latencyMs}ms`}
+            tone={latencyTone(latencyMs)}
+            title="Round-trip time to the agent process, timed on a plain ping/pong"
+          />
+        </div>
       </div>
     </section>
   )

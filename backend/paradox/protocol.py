@@ -208,6 +208,11 @@ def voice_state(state: str) -> dict[str, Any]:
     return {"type": "voice.state", "state": state}
 
 
+def pong(ping_id: str) -> dict[str, Any]:
+    """Echo of a client ping, so it can time the round trip itself."""
+    return {"type": "pong", "id": ping_id}
+
+
 def error(text: str, task_id: str | None = None) -> dict[str, Any]:
     out: dict[str, Any] = {"type": "error", "message": text}
     if task_id:

@@ -181,8 +181,10 @@ export interface SystemStats {
   processes: number
   capturedAt: number
   network?: { up: number; down: number }
-  temperature?: number
   gpu?: number
+  /** Hottest matching Windows thermal zone, in °C. Omitted when unreadable. */
+  cpuTempC?: number
+  gpuTempC?: number
 }
 
 /* ----------------------------------------------------------------- voice -- */
@@ -220,6 +222,7 @@ export type ServerEvent =
   | { type: 'media'; media: NowPlaying | null }
   | { type: 'voice.state'; state: VoiceState }
   | { type: 'transcript'; text: string }
+  | { type: 'pong'; id: string }
   | { type: 'error'; message: string; taskId?: string }
 
 export type ClientEvent =
@@ -233,3 +236,4 @@ export type ClientEvent =
   | { type: 'memory.forget'; id: number }
   | { type: 'memory.clear'; kind?: MemoryKind }
   | { type: 'media.control'; action: MediaAction }
+  | { type: 'ping'; id: string }

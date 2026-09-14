@@ -1,7 +1,7 @@
 """Real system telemetry for the monitor panel.
 
-Only reports what this machine actually exposes. Anything psutil cannot read on
-Windows is omitted rather than filled in with a plausible number.
+Only reports what this machine actually exposes. Anything not readable here is
+omitted rather than filled in with a plausible number.
 """
 
 from __future__ import annotations
@@ -16,44 +16,117 @@ import psutil
 
 _last_net: tuple[float, int, int] | None = None
 
-# GPU comes from a Windows performance counter, which costs ~700ms through
-# PowerShell. Sample it on its own slow cadence and serve the cached value.
-_gpu: float | None = None
-_gpu_at: float = 0.0
-_gpu_lock = threading.Lock()
-GPU_INTERVAL = 6.0
+# psutil.cpu_percent() measures against whenever it was last called. The very
+# first call in a process has nothing to compare against and returns a
+# meaningless number (0.0, or the since-boot average) — so warm it up once at
+# import time and throw that first reading away. Every call after this one,
+# including the first real sample the telemetry loop takes, is a genuine
+# delta over a known interval.
+psutil.cpu_percent(interval=None)
+
+# GPU% and both temperatures all come from one PowerShell round trip, which
+# costs several hundred ms. Sample it on its own slow cadence in the
+# background and serve the cached values in between.
+_hw: dict[str, float | None] = {"gpu": None, "cpu_temp": None, "gpu_temp": None}
+_hw_at: float = 0.0
+_hw_lock = threading.Lock()
+HW_INTERVAL = 6.0
+
+# Windows Task Manager's headline "GPU" percentage is not a sum of every
+# engine instance — a GPU exposes several engine *types* (3D, Copy, Video
+# Decode, Video Encode, ...), and several processes can each be partially
+# using the same engine type at once. Task Manager sums the instances that
+# share an engine type (that IS the type's true load) and then reports the
+# busiest type as "the" GPU percentage. Summing everything instead — which
+# earlier code here did — double-counts whenever more than one engine type is
+# active at once (e.g. 3D + video decode) and overstates load.
+#
+# Thermal-zone temperatures come from Win32_PerfFormattedData_..., which is
+# readable without admin rights on this machine (confirmed: MSAcpi_Thermal-
+# ZoneTemperature under root/wmi needs elevation and is not used). Values are
+# tenths of a degree Kelvin; zone names are OEM-defined, so CPU/GPU are
+# matched by substring and, when a machine exposes more than one matching
+# zone, the hottest is reported — that is the one that would throttle first.
+_HW_SCRIPT = r"""
+$ProgressPreference = 'SilentlyContinue'
+$gpuPct = ''
+try {
+    $samples = (Get-Counter '\GPU Engine(*)\Utilization Percentage' -ErrorAction Stop).CounterSamples
+    $groups = $samples | Where-Object { $_.CookedValue -gt 0 -and $_.InstanceName -match 'engtype_(\w+)' } |
+        ForEach-Object { [PSCustomObject]@{ Type = $matches[1]; Value = $_.CookedValue } } |
+        Group-Object Type |
+        ForEach-Object { ($_.Group | Measure-Object Value -Sum).Sum }
+    if ($groups) { $gpuPct = [math]::Round(($groups | Measure-Object -Maximum).Maximum, 1) }
+} catch {}
+
+$cpuC = ''
+$gpuC = ''
+try {
+    $zones = Get-CimInstance -Namespace root/cimv2 `
+        -ClassName Win32_PerfFormattedData_Counters_ThermalZoneInformation -ErrorAction Stop
+    $cpuVals = $zones | Where-Object { $_.Name -match 'CPU' } |
+        ForEach-Object { $_.HighPrecisionTemperature / 10.0 - 273.15 }
+    $gpuVals = $zones | Where-Object { $_.Name -match 'GFX|GPU' } |
+        ForEach-Object { $_.HighPrecisionTemperature / 10.0 - 273.15 }
+    if ($cpuVals) { $cpuC = [math]::Round(($cpuVals | Measure-Object -Maximum).Maximum, 1) }
+    if ($gpuVals) { $gpuC = [math]::Round(($gpuVals | Measure-Object -Maximum).Maximum, 1) }
+} catch {}
+
+Write-Output "$gpuPct|$cpuC|$gpuC"
+"""
 
 
-def _read_gpu() -> float | None:
+def _parse_hw_line(line: str) -> dict[str, float | None]:
+    parts = (line.strip().split("|") + ["", "", ""])[:3]
+
+    def num(text: str) -> float | None:
+        text = text.strip()
+        if not text:
+            return None
+        try:
+            return float(text)
+        except ValueError:
+            return None
+
+    gpu = num(parts[0])
+    return {
+        "gpu": min(100.0, gpu) if gpu is not None else None,
+        "cpu_temp": num(parts[1]),
+        "gpu_temp": num(parts[2]),
+    }
+
+
+def _read_hardware() -> dict[str, float | None]:
     try:
         proc = subprocess.run(
-            ["powershell", "-NoProfile", "-NonInteractive", "-Command",
-             r"$s=(Get-Counter '\GPU Engine(*)\Utilization Percentage' "
-             r"-ErrorAction SilentlyContinue).CounterSamples | "
-             r"Measure-Object -Property CookedValue -Sum; [math]::Round($s.Sum,1)"],
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", _HW_SCRIPT],
             capture_output=True, text=True, timeout=12, check=False,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
-        value = proc.stdout.strip()
-        return min(100.0, float(value)) if value else None
+        # PowerShell may print a blank line or two before the result; take the
+        # last non-empty one.
+        lines = [line for line in proc.stdout.splitlines() if line.strip()]
+        if not lines or "|" not in lines[-1]:
+            return {"gpu": None, "cpu_temp": None, "gpu_temp": None}
+        return _parse_hw_line(lines[-1])
     except Exception:
-        return None
+        return {"gpu": None, "cpu_temp": None, "gpu_temp": None}
 
 
-def gpu_percent() -> float | None:
-    """Last known GPU load, refreshed in the background."""
-    global _gpu, _gpu_at
+def hardware() -> dict[str, float | None]:
+    """Last known GPU%/CPU temp/GPU temp, refreshed in the background."""
+    global _hw, _hw_at
 
     def refresh() -> None:
-        global _gpu, _gpu_at
-        value = _read_gpu()
-        with _gpu_lock:
-            _gpu, _gpu_at = value, time.time()
+        global _hw, _hw_at
+        values = _read_hardware()
+        with _hw_lock:
+            _hw, _hw_at = values, time.time()
 
-    if time.time() - _gpu_at > GPU_INTERVAL:
-        _gpu_at = time.time()  # claim the slot so only one thread refreshes
+    if time.time() - _hw_at > HW_INTERVAL:
+        _hw_at = time.time()  # claim the slot so only one thread refreshes
         threading.Thread(target=refresh, daemon=True).start()
-    return _gpu
+    return _hw
 
 
 def _network_rates() -> dict[str, float] | None:
@@ -71,25 +144,10 @@ def _network_rates() -> dict[str, float] | None:
     }
 
 
-def _temperature() -> float | None:
-    """Windows almost never exposes this through psutil; say nothing if so."""
-    getter = getattr(psutil, "sensors_temperatures", None)
-    if not getter:
-        return None
-    try:
-        readings = getter()
-    except Exception:
-        return None
-    for entries in readings.values():
-        for entry in entries:
-            if entry.current:
-                return round(float(entry.current), 1)
-    return None
-
-
 def sample() -> dict[str, Any]:
     memory = psutil.virtual_memory()
     disk = shutil.disk_usage("C:\\")
+    hw = hardware()
 
     stats: dict[str, Any] = {
         "cpu": round(psutil.cpu_percent(interval=None), 1),
@@ -112,12 +170,11 @@ def sample() -> dict[str, Any]:
     if network:
         stats["network"] = network
 
-    temperature = _temperature()
-    if temperature is not None:
-        stats["temperature"] = temperature
-
-    gpu = gpu_percent()
-    if gpu is not None:
-        stats["gpu"] = gpu
+    if hw["gpu"] is not None:
+        stats["gpu"] = hw["gpu"]
+    if hw["cpu_temp"] is not None:
+        stats["cpuTempC"] = hw["cpu_temp"]
+    if hw["gpu_temp"] is not None:
+        stats["gpuTempC"] = hw["gpu_temp"]
 
     return stats
