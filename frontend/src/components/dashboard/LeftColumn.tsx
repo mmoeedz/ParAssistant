@@ -157,11 +157,11 @@ function MetricCard({ label, value, unit, history, deltaFormat, deltaUnit = '', 
           ) : (
             <>
               {trend === 'up' ? (
-                <ArrowUp size={9} />
+                <ArrowUp size={10} />
               ) : trend === 'down' ? (
-                <ArrowDown size={9} />
+                <ArrowDown size={10} />
               ) : (
-                <Minus size={9} />
+                <Minus size={10} />
               )}
               {deltaText}
             </>

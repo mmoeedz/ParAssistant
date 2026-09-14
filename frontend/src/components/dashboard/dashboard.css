@@ -85,10 +85,12 @@
 
 /* ----------------------------------------------------- hardware readout -- */
 
+/* Two columns, not four — at four-up, "CPU TEMP"/"GPU TEMP" and the delta
+   badge have nowhere to go and the label truncates to a single letter. */
 .mgrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--hairline);
@@ -98,23 +100,25 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 8px 9px 7px;
+  padding: 10px 11px 9px;
   border-radius: var(--r-md);
   border: 1px solid var(--border);
   background: var(--surface-2);
 }
 
-/* Label on the left, the +/- change on the right — same row. */
+/* Label on the left, the +/- change on the right — same row. With two
+   columns instead of four there is finally room for both. */
 .mcard__top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
+  gap: 6px;
 }
 
 .mcard__label {
+  min-width: 0;
   font-family: var(--font-hud);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.06em;
   color: var(--text-faint);
@@ -129,8 +133,8 @@
 .mspark {
   display: block;
   width: 100%;
-  height: 30px;
-  margin: 4px 0;
+  height: 34px;
+  margin: 5px 0;
   overflow: visible;
 }
 
@@ -141,13 +145,13 @@
 
 .mspark__line {
   fill: none;
-  stroke-width: 1.3;
+  stroke-width: 1.4;
   vector-effect: non-scaling-stroke;
 }
 
 .mcard__value {
   font-family: var(--font-hud);
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -157,7 +161,7 @@
 
 .mcard__unit {
   margin-left: 2px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-dim);
 }
@@ -168,8 +172,8 @@
   display: flex;
   align-items: center;
   flex: none;
-  gap: 2px;
-  font-size: 9.5px;
+  gap: 3px;
+  font-size: 11px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
