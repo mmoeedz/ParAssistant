@@ -155,6 +155,7 @@ function NameTag({
         left: `${(runtime.x / FLOOR_W) * 100}%`,
         top: `${((runtime.y - 62) / floorH) * 100}%`,
         ['--tone' as string]: def.color,
+        ['--move-ms' as string]: `${runtime.moveMs}ms`,
       }}
       title={title}
     >
@@ -223,6 +224,7 @@ function Character({ def, runtime }: { def: AgentDef; runtime: AgentRuntime }) {
       style={{
         transform: `translate(${runtime.x}px, ${runtime.y}px) scale(${SCALE})`,
         color: def.color,
+        ['--move-ms' as string]: `${runtime.moveMs}ms`,
       }}
     >
       <ellipse cy="1" rx="13" ry="3.8" fill={def.color} className="ch__shadow" />

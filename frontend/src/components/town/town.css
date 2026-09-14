@@ -70,9 +70,10 @@
 .seat {
   position: absolute;
   transform: translate(-50%, -50%);
-  /* matches WALK_MS, so the tag travels with its agent */
-  transition: left 900ms cubic-bezier(0.4, 0, 0.2, 1),
-    top 900ms cubic-bezier(0.4, 0, 0.2, 1), border-color var(--med) var(--ease),
+  /* --move-ms is set per leg by the walk state machine, so the tag speeds
+     through a short hop and takes longer crossing the whole corridor. */
+  transition: left var(--move-ms, 900ms) cubic-bezier(0.4, 0, 0.2, 1),
+    top var(--move-ms, 900ms) cubic-bezier(0.4, 0, 0.2, 1), border-color var(--med) var(--ease),
     box-shadow var(--med) var(--ease), opacity var(--med) var(--ease);
   display: flex;
   align-items: center;
@@ -135,9 +136,10 @@
   pointer-events: none;
 }
 
-/* 900ms matches WALK_MS in the store, so the walk ends when the state does. */
+/* --move-ms is set per leg by the walk state machine (session.ts), so the
+   transition always finishes exactly when that leg's schedule() timer does. */
 .ch {
-  transition: transform 900ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform var(--move-ms, 900ms) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .ch__shadow {

@@ -21,6 +21,7 @@ import type {
 import {
   AGENTS,
   AGENT_BY_ID,
+  CORRIDOR_Y,
   WAKE_LINES,
   agentForTool,
   initialRuntime,
@@ -56,6 +57,21 @@ const MAX_CONSOLE = 200
 /** Walk timings, shared by the store's state machine and the town's CSS. */
 export const WAKE_MS = 520
 export const WALK_MS = 900
+
+/**
+ * A leg's duration scales with how far it actually travels, so a short hop
+ * onto the corridor doesn't take as long as crossing the whole floor on it —
+ * both play at roughly the same walking speed instead of the same duration.
+ */
+const WALK_UNITS_PER_MS = 0.45
+const MIN_LEG_MS = 220
+const MAX_LEG_MS = 1200
+
+function legDuration(dx: number, dy: number): number {
+  const dist = Math.hypot(dx, dy)
+  if (dist < 1) return 0
+  return Math.round(Math.min(MAX_LEG_MS, Math.max(MIN_LEG_MS, dist / WALK_UNITS_PER_MS)))
+}
 
 function loadSettings(): Settings {
   try {
@@ -209,10 +225,26 @@ export const useSession = create<SessionState>((set, get) => {
       runs: current.runs + 1,
     })
 
-    schedule(`${id}:walk`, WAKE_MS, () => {
-      patchAgent(id, { state: 'walking', x: def.station.x, y: def.station.y, atStation: false })
-      schedule(`${id}:work`, WALK_MS, () => {
-        patchAgent(id, { state: 'working', atStation: true, says: null })
+    schedule(`${id}:leg1`, WAKE_MS, () => {
+      const home = def.home
+      const toCorridorMs = legDuration(0, home.y - CORRIDOR_Y)
+      patchAgent(id, {
+        state: 'walking',
+        x: home.x,
+        y: CORRIDOR_Y,
+        atStation: false,
+        moveMs: toCorridorMs,
+      })
+      schedule(`${id}:leg2`, toCorridorMs, () => {
+        const alongMs = legDuration(def.station.x - home.x, 0)
+        patchAgent(id, { x: def.station.x, y: CORRIDOR_Y, moveMs: alongMs })
+        schedule(`${id}:leg3`, alongMs, () => {
+          const toStationMs = legDuration(0, CORRIDOR_Y - def.station.y)
+          patchAgent(id, { x: def.station.x, y: def.station.y, moveMs: toStationMs })
+          schedule(`${id}:work`, toStationMs, () => {
+            patchAgent(id, { state: 'working', atStation: true, says: null })
+          })
+        })
       })
     })
   }
@@ -220,13 +252,31 @@ export const useSession = create<SessionState>((set, get) => {
   const standDown = (id: AgentId, state: AgentState = 'completed') => {
     const def = AGENT_BY_ID[id]
     if (get().agents[id].state === 'standby') return
-    clearTimer(`${id}:walk`)
+    clearTimer(`${id}:leg1`)
+    clearTimer(`${id}:leg2`)
+    clearTimer(`${id}:leg3`)
     clearTimer(`${id}:work`)
     patchAgent(id, { state, says: null })
     schedule(`${id}:home`, 900, () => {
-      patchAgent(id, { state: 'returning', x: def.home.x, y: def.home.y, atStation: false })
-      schedule(`${id}:idle`, WALK_MS, () => {
-        patchAgent(id, { state: 'standby', activity: null, atStation: id === 'paradox' })
+      const station = def.station
+      const toCorridorMs = legDuration(0, CORRIDOR_Y - station.y)
+      patchAgent(id, {
+        state: 'returning',
+        x: station.x,
+        y: CORRIDOR_Y,
+        atStation: false,
+        moveMs: toCorridorMs,
+      })
+      schedule(`${id}:rleg1`, toCorridorMs, () => {
+        const alongMs = legDuration(def.home.x - station.x, 0)
+        patchAgent(id, { x: def.home.x, y: CORRIDOR_Y, moveMs: alongMs })
+        schedule(`${id}:rleg2`, alongMs, () => {
+          const toHomeMs = legDuration(0, CORRIDOR_Y - def.home.y)
+          patchAgent(id, { x: def.home.x, y: def.home.y, moveMs: toHomeMs })
+          schedule(`${id}:idle`, toHomeMs, () => {
+            patchAgent(id, { state: 'standby', activity: null, atStation: id === 'paradox' })
+          })
+        })
       })
     })
   }

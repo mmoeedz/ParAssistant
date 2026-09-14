@@ -49,6 +49,17 @@ export interface AgentDef {
  * artwork's pixels). A station is where an agent stands to work: the walkway
  * directly under its desk, so the character lines up with its badge.
  */
+/**
+ * The corridor is the one obstruction-free path across the whole floor — a
+ * full-width band painted into TownFloor at y = 133-152. Every walk to or
+ * from a station routes through this y first, instead of cutting a diagonal
+ * line through walls and furniture.
+ */
+export const CORRIDOR_Y = 142
+
+/** Fallback transition duration before any walk has set a real one. */
+export const DEFAULT_MOVE_MS = 900
+
 export const STATIONS: Record<string, Station> = {
   core: { id: 'core', label: 'Paradox Core', x: 395, y: 200 },
   browser: { id: 'browser', label: 'Browser Station', x: 62, y: 138 },
@@ -178,6 +189,8 @@ export interface AgentRuntime {
   lastActiveAt: number | null
   /** Tool calls this agent has run this session. */
   runs: number
+  /** Duration of the walk currently in flight to (x, y); drives the CSS transition. */
+  moveMs: number
 }
 
 export function initialRuntime(): Record<AgentId, AgentRuntime> {
@@ -194,6 +207,7 @@ export function initialRuntime(): Record<AgentId, AgentRuntime> {
         says: null,
         lastActiveAt: null,
         runs: 0,
+        moveMs: DEFAULT_MOVE_MS,
       },
     ]),
   ) as Record<AgentId, AgentRuntime>
