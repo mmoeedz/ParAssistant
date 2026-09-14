@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { Activity, ArrowRight, Gauge, ListChecks, Newspaper, Target } from 'lucide-react'
+import {
+  Activity,
+  ArrowDown,
+  ArrowRight,
+  ArrowUp,
+  Gauge,
+  ListChecks,
+  Minus,
+  Newspaper,
+  Target,
+} from 'lucide-react'
 import { useSession } from '@/store/session'
 import { useFps } from '@/hooks/useFps'
 import { AGENTS } from '@/types/agents'
@@ -55,51 +65,106 @@ function Sparkline({ points }: { points: number[] }) {
   )
 }
 
-/** Small metric readout, distinct from the numeric-only `Stat` below it. */
-function HwStat({
-  label,
-  value,
-  tone,
-  title,
-}: {
-  label: string
-  value: string
-  tone?: string
-  title?: string
-}) {
+/**
+ * Bounded rolling history of a live value, for a card's own mini sparkline
+ * and trend. Nulls (value not available yet) are skipped rather than
+ * plotted as zero.
+ *
+ * `tick` is what actually triggers a push — for FPS and latency the value
+ * itself changes on close to every reading, so it can serve as its own tick.
+ * CPU/GPU temperature come from a backend cache that only refreshes every
+ * few seconds and re-sends the same number across several broadcasts in
+ * between; keying off the value there would silently drop every repeat and
+ * leave the trend stuck on "no data yet" during a genuinely flat stretch.
+ * Passing the stats frame's own timestamp as `tick` records "sampled again,
+ * still flat" as a real, honest point instead.
+ */
+function useHistory(value: number | null, tick: unknown = value, limit = 24): number[] {
+  const [history, setHistory] = useState<number[]>([])
+  useEffect(() => {
+    if (value === null) return
+    setHistory((prev) => [...prev, value].slice(-limit))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- tick, not value, decides when to sample
+  }, [tick, limit])
+  return history
+}
+
+/** Auto-scaled to its own window — this is a trend, not a percentage gauge. */
+function MiniSpark({ points, color }: { points: number[]; color: string }) {
+  const width = 56
+  const height = 20
+  if (points.length < 2) {
+    return <svg viewBox={`0 0 ${width} ${height}`} className="mspark" aria-hidden="true" />
+  }
+  const min = Math.min(...points)
+  const max = Math.max(...points)
+  const span = max - min || 1
+  const step = width / (points.length - 1)
+  const path = points
+    .map((v, i) => `${i === 0 ? 'M' : 'L'} ${(i * step).toFixed(1)} ${(height - ((v - min) / span) * height).toFixed(1)}`)
+    .join(' ')
+
   return (
-    <div className="hwcell" title={title}>
-      <div className="hwcell__value" style={tone ? { color: tone } : undefined}>
-        {value}
-      </div>
-      <div className="hwcell__label">{label}</div>
-    </div>
+    <svg viewBox={`0 0 ${width} ${height}`} className="mspark" preserveAspectRatio="none" aria-hidden="true">
+      <path d={path} stroke={color} className="mspark__line" />
+    </svg>
   )
 }
 
-// Thresholds are a laptop-CPU rule of thumb (throttling risk climbs past
-// ~85°C, worth a look past ~70°C) — not a spec pulled from this machine.
-function tempTone(c: number | undefined): string | undefined {
-  if (c === undefined) return undefined
-  if (c >= 85) return 'var(--danger)'
-  if (c >= 70) return 'var(--warn)'
-  return undefined
+interface MetricCardProps {
+  value: string
+  unit: string
+  history: number[]
+  /** 'percent' for a scale-free metric like FPS; 'unit' appends deltaUnit. */
+  deltaFormat: 'percent' | 'unit'
+  deltaUnit?: string
+  color: string
+  title: string
 }
 
-// The agent runs on localhost by default, so healthy latency here is a few
-// ms; these bands only matter once the connection is remote or congested.
-function latencyTone(ms: number | null): string | undefined {
-  if (ms === null) return undefined
-  if (ms >= 300) return 'var(--danger)'
-  if (ms >= 120) return 'var(--warn)'
-  return undefined
-}
+/** One-step change — the latest real sample against the one before it. */
+function MetricCard({ value, unit, history, deltaFormat, deltaUnit = '', color, title }: MetricCardProps) {
+  const previous = history[history.length - 2]
+  const latest = history[history.length - 1]
+  const diff = previous !== undefined ? latest - previous : null
+  // Genuinely unchanged is its own state — defaulting a zero diff to "up"
+  // would claim a rising trend for a metric that has not moved.
+  const trend: 'up' | 'down' | 'flat' | null = diff === null ? null : diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat'
 
-function fpsTone(fps: number | null): string | undefined {
-  if (fps === null) return undefined
-  if (fps < 30) return 'var(--danger)'
-  if (fps < 50) return 'var(--warn)'
-  return undefined
+  const deltaText =
+    diff === null
+      ? null
+      : deltaFormat === 'percent'
+        ? `${trend === 'up' ? '+' : ''}${((diff / (previous || 1)) * 100).toFixed(1)}%`
+        : `${trend === 'up' ? '+' : ''}${diff.toFixed(deltaUnit === 'ms' ? 0 : 1)}${deltaUnit}`
+
+  return (
+    <div className="mcard" style={{ ['--tone' as string]: color }} title={title}>
+      <div className="mcard__top">
+        <div className="mcard__value">
+          {value}
+          {value !== '—' ? <span className="mcard__unit">{unit}</span> : null}
+        </div>
+        <MiniSpark points={history} color={color} />
+      </div>
+      <div className="mcard__delta" data-empty={deltaText === null}>
+        {trend === null ? (
+          '—'
+        ) : (
+          <>
+            {trend === 'up' ? (
+              <ArrowUp size={9} />
+            ) : trend === 'down' ? (
+              <ArrowDown size={9} />
+            ) : (
+              <Minus size={9} />
+            )}
+            {deltaText}
+          </>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export function SystemOverview() {
@@ -117,6 +182,11 @@ export function SystemOverview() {
     }
   }
 
+  const fpsHistory = useHistory(fps)
+  const cpuTempHistory = useHistory(stats?.cpuTempC ?? null, stats?.capturedAt)
+  const gpuTempHistory = useHistory(stats?.gpuTempC ?? null, stats?.capturedAt)
+  const latencyHistory = useHistory(latencyMs)
+
   return (
     <section className="panel">
       <header className="panel__head">
@@ -132,29 +202,40 @@ export function SystemOverview() {
         </div>
         <Sparkline points={history.current} />
 
-        <div className="hwgrid">
-          <HwStat
-            label="FPS"
+        <div className="mgrid">
+          <MetricCard
             value={fps === null ? '—' : String(fps)}
-            tone={fpsTone(fps)}
+            unit="FPS"
+            history={fpsHistory}
+            deltaFormat="percent"
+            color="var(--metric-fps)"
             title="This interface's own render rate — there is no single Windows-wide FPS to read"
           />
-          <HwStat
-            label="CPU °C"
-            value={stats?.cpuTempC !== undefined ? `${stats.cpuTempC}°` : '—'}
-            tone={tempTone(stats?.cpuTempC)}
+          <MetricCard
+            value={stats?.cpuTempC !== undefined ? stats.cpuTempC.toFixed(1) : '—'}
+            unit="°c"
+            history={cpuTempHistory}
+            deltaFormat="unit"
+            deltaUnit="°"
+            color="var(--metric-cpu)"
             title="Hottest CPU thermal zone this machine exposes"
           />
-          <HwStat
-            label="GPU °C"
-            value={stats?.gpuTempC !== undefined ? `${stats.gpuTempC}°` : '—'}
-            tone={tempTone(stats?.gpuTempC)}
+          <MetricCard
+            value={stats?.gpuTempC !== undefined ? stats.gpuTempC.toFixed(1) : '—'}
+            unit="°c"
+            history={gpuTempHistory}
+            deltaFormat="unit"
+            deltaUnit="°"
+            color="var(--metric-gpu)"
             title="Hottest GPU thermal zone this machine exposes"
           />
-          <HwStat
-            label="LATENCY"
-            value={latencyMs === null ? '—' : `${latencyMs}ms`}
-            tone={latencyTone(latencyMs)}
+          <MetricCard
+            value={latencyMs === null ? '—' : String(Math.round(latencyMs))}
+            unit="ms"
+            history={latencyHistory}
+            deltaFormat="unit"
+            deltaUnit="ms"
+            color="var(--metric-latency)"
             title="Round-trip time to the agent process, timed on a plain ping/pong"
           />
         </div>

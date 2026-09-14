@@ -50,6 +50,13 @@
   --a-aria: #7dd3fc;   /* voice    — sky */
   --a-kai: #facc15;    /* memory   — amber */
 
+  /* hardware metric cards — one fixed hue per card, independent of the
+     agent accents above (a metric card is not an agent) */
+  --metric-fps: #34d399;
+  --metric-cpu: #fb923c;
+  --metric-gpu: #22d3ee;
+  --metric-latency: #a78bfa;
+
   /* map activity dots, matching the reference's mixed palette */
   --m-teal: #00e8f1;
   --m-green: #4ade80;
@@ -143,6 +150,11 @@
   --a-axel: #6d3fd0;
   --a-aria: #0a72a8;
   --a-kai: #9a7500;
+
+  --metric-fps: #0f9d67;
+  --metric-cpu: #c2540a;
+  --metric-gpu: #0891b2;
+  --metric-latency: #7c4fd6;
 
   --m-teal: #00897b;
   --m-green: #12924f;
