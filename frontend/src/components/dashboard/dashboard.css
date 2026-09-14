@@ -72,13 +72,13 @@
 
 .spark__line {
   fill: none;
-  stroke: var(--accent);
+  stroke: var(--spark-cpu);
   stroke-width: 1.4;
   vector-effect: non-scaling-stroke;
 }
 
 .spark__fill {
-  fill: var(--accent);
+  fill: var(--spark-cpu);
   opacity: 0.08;
   stroke: none;
 }
@@ -104,7 +104,7 @@
 
 .mcard__top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 4px;
 }
@@ -116,6 +116,7 @@
   color: var(--tone);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  line-height: 1.1;
 }
 
 .mcard__unit {
@@ -126,12 +127,22 @@
   opacity: 0.75;
 }
 
+/* The graph lives in its own full-width row inside the card, below the
+   value/delta line — not squeezed in beside the text. Styled the same way
+   as the System Overview graph above it: a stroked line over its own
+   closed, low-opacity fill — just in each card's own colour instead of one
+   shared one. */
 .mspark {
   display: block;
-  width: 32px;
-  height: 16px;
-  flex: none;
+  width: 100%;
+  height: 26px;
+  margin-top: 6px;
   overflow: visible;
+}
+
+.mspark__fill {
+  stroke: none;
+  opacity: 0.14;
 }
 
 .mspark__line {
@@ -140,15 +151,18 @@
   vector-effect: non-scaling-stroke;
 }
 
+/* The +/- change sits on the right edge of the top row, level with the value. */
 .mcard__delta {
   display: flex;
   align-items: center;
+  flex: none;
   gap: 2px;
-  margin-top: 3px;
+  padding-top: 1px;
   font-size: 9.5px;
   font-weight: 600;
   color: var(--tone);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .mcard__delta[data-empty='true'] {

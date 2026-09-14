@@ -57,6 +57,9 @@
   --metric-gpu: #22d3ee;
   --metric-latency: #a78bfa;
 
+  /* the CPU/RAM/GPU/disk overview's own trend line, under the four rings */
+  --spark-cpu: #facc15;
+
   /* map activity dots, matching the reference's mixed palette */
   --m-teal: #00e8f1;
   --m-green: #4ade80;
@@ -155,6 +158,8 @@
   --metric-cpu: #c2540a;
   --metric-gpu: #0891b2;
   --metric-latency: #7c4fd6;
+
+  --spark-cpu: #9a7500;
 
   --m-teal: #00897b;
   --m-green: #12924f;

@@ -106,7 +106,8 @@ function MiniSpark({ points, color }: { points: number[]; color: string }) {
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="mspark" preserveAspectRatio="none" aria-hidden="true">
-      <path d={path} stroke={color} className="mspark__line" />
+      <path d={`${path} L ${width} ${height} L 0 ${height} Z`} fill={color} className="mspark__fill" />
+      <path d={path} stroke={color} fill="none" className="mspark__line" />
     </svg>
   )
 }
@@ -145,24 +146,24 @@ function MetricCard({ value, unit, history, deltaFormat, deltaUnit = '', color, 
           {value}
           {value !== '—' ? <span className="mcard__unit">{unit}</span> : null}
         </div>
-        <MiniSpark points={history} color={color} />
+        <div className="mcard__delta" data-empty={deltaText === null}>
+          {trend === null ? (
+            '—'
+          ) : (
+            <>
+              {trend === 'up' ? (
+                <ArrowUp size={9} />
+              ) : trend === 'down' ? (
+                <ArrowDown size={9} />
+              ) : (
+                <Minus size={9} />
+              )}
+              {deltaText}
+            </>
+          )}
+        </div>
       </div>
-      <div className="mcard__delta" data-empty={deltaText === null}>
-        {trend === null ? (
-          '—'
-        ) : (
-          <>
-            {trend === 'up' ? (
-              <ArrowUp size={9} />
-            ) : trend === 'down' ? (
-              <ArrowDown size={9} />
-            ) : (
-              <Minus size={9} />
-            )}
-            {deltaText}
-          </>
-        )}
-      </div>
+      <MiniSpark points={history} color={color} />
     </div>
   )
 }
