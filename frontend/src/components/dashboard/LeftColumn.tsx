@@ -113,7 +113,6 @@ function MiniSpark({ points, color }: { points: number[]; color: string }) {
 }
 
 interface MetricCardProps {
-  label: string
   value: string
   unit: string
   history: number[]
@@ -127,12 +126,13 @@ interface MetricCardProps {
 /**
  * One-step change — the latest real sample against the one before it.
  *
- * The graph keeps this card's own accent colour (each metric has its own
- * hue), but the delta is a judgement about direction, not identity — rising
- * is green and falling is red on every card, the same convention a stock
- * ticker uses, independent of which metric it is.
+ * The value and its graph share this card's own accent colour, but the
+ * delta is a judgement about direction, not identity — rising is green and
+ * falling is red on every card, the same convention regardless of which
+ * metric it is. There is no separate caption line, so the title attribute
+ * is what discloses exactly what is being measured on hover.
  */
-function MetricCard({ label, value, unit, history, deltaFormat, deltaUnit = '', color, title }: MetricCardProps) {
+function MetricCard({ value, unit, history, deltaFormat, deltaUnit = '', color, title }: MetricCardProps) {
   const previous = history[history.length - 2]
   const latest = history[history.length - 1]
   const diff = previous !== undefined ? latest - previous : null
@@ -148,30 +148,29 @@ function MetricCard({ label, value, unit, history, deltaFormat, deltaUnit = '', 
         : `${trend === 'up' ? '+' : ''}${diff.toFixed(deltaUnit === 'ms' ? 0 : 1)}${deltaUnit}`
 
   return (
-    <div className="mcard" title={title}>
+    <div className="mcard" style={{ ['--tone' as string]: color }} title={title}>
       <div className="mcard__top">
-        <span className="mcard__label">{label}</span>
-        <span className="mcard__delta" data-trend={trend ?? 'none'}>
-          {trend === null ? (
-            '—'
-          ) : (
-            <>
-              {trend === 'up' ? (
-                <ArrowUp size={10} />
-              ) : trend === 'down' ? (
-                <ArrowDown size={10} />
-              ) : (
-                <Minus size={10} />
-              )}
-              {deltaText}
-            </>
-          )}
-        </span>
+        <div className="mcard__value">
+          {value}
+          {value !== '—' ? <span className="mcard__unit">{unit}</span> : null}
+        </div>
+        <MiniSpark points={history} color={color} />
       </div>
-      <MiniSpark points={history} color={color} />
-      <div className="mcard__value">
-        {value}
-        {value !== '—' && unit ? <span className="mcard__unit">{unit}</span> : null}
+      <div className="mcard__delta" data-trend={trend ?? 'none'}>
+        {trend === null ? (
+          '—'
+        ) : (
+          <>
+            {trend === 'up' ? (
+              <ArrowUp size={10} />
+            ) : trend === 'down' ? (
+              <ArrowDown size={10} />
+            ) : (
+              <Minus size={10} />
+            )}
+            {deltaText}
+          </>
+        )}
       </div>
     </div>
   )
@@ -214,43 +213,39 @@ export function SystemOverview() {
 
         <div className="mgrid">
           <MetricCard
-            label="FPS"
             value={fps === null ? '—' : String(fps)}
-            unit=""
+            unit="FPS"
             history={fpsHistory}
             deltaFormat="percent"
             color="var(--metric-fps)"
             title="This interface's own render rate — there is no single Windows-wide FPS to read"
           />
           <MetricCard
-            label="CPU TEMP"
             value={stats?.cpuTempC !== undefined ? stats.cpuTempC.toFixed(1) : '—'}
             unit="°c"
             history={cpuTempHistory}
             deltaFormat="unit"
             deltaUnit="°"
             color="var(--metric-cpu)"
-            title="Hottest CPU thermal zone this machine exposes"
+            title="CPU — hottest thermal zone this machine exposes"
           />
           <MetricCard
-            label="GPU TEMP"
             value={stats?.gpuTempC !== undefined ? stats.gpuTempC.toFixed(1) : '—'}
             unit="°c"
             history={gpuTempHistory}
             deltaFormat="unit"
             deltaUnit="°"
             color="var(--metric-gpu)"
-            title="Hottest GPU thermal zone this machine exposes"
+            title="GPU — hottest thermal zone this machine exposes"
           />
           <MetricCard
-            label="LATENCY"
             value={latencyMs === null ? '—' : String(Math.round(latencyMs))}
             unit="ms"
             history={latencyHistory}
             deltaFormat="unit"
             deltaUnit="ms"
             color="var(--metric-latency)"
-            title="Round-trip time to the agent process, timed on a plain ping/pong"
+            title="Latency — round-trip time to the agent process, timed on a plain ping/pong"
           />
         </div>
       </div>

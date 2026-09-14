@@ -97,44 +97,47 @@
 }
 
 .mcard {
-  display: flex;
-  flex-direction: column;
   min-width: 0;
-  padding: 10px 11px 9px;
+  padding: 9px 10px 8px;
   border-radius: var(--r-md);
   border: 1px solid var(--border);
   background: var(--surface-2);
 }
 
-/* Label on the left, the +/- change on the right — same row. With two
-   columns instead of four there is finally room for both. */
+/* Value on the left, its own small trend graph on the right — one row. */
 .mcard__top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
 }
 
-.mcard__label {
-  min-width: 0;
+.mcard__value {
   font-family: var(--font-hud);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--text-faint);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--tone);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.1;
 }
 
-/* The graph is the card's centre of gravity, between the label and the
-   value — styled like the System Overview graph above it: a stroked line
-   over its own closed, low-opacity fill, in this card's own colour. */
+.mcard__unit {
+  margin-left: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tone);
+  opacity: 0.75;
+}
+
+/* A compact graph beside the value, not a full-width strip — styled like
+   the System Overview graph above it: a stroked line over its own closed,
+   low-opacity fill, in this card's own colour. */
 .mspark {
   display: block;
-  width: 100%;
-  height: 34px;
-  margin: 5px 0;
+  width: 64px;
+  height: 22px;
+  flex: none;
   overflow: visible;
 }
 
@@ -149,30 +152,13 @@
   vector-effect: non-scaling-stroke;
 }
 
-.mcard__value {
-  font-family: var(--font-hud);
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  line-height: 1.1;
-}
-
-.mcard__unit {
-  margin-left: 2px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-dim);
-}
-
-/* Direction, not identity: rising is green and falling is red on every
-   card, the same convention regardless of which metric it is. */
+/* The +/- change sits below, in the same colour as everything else in the
+   card — this is one metric's own reading, not a pass/fail judgement. */
 .mcard__delta {
   display: flex;
   align-items: center;
-  flex: none;
   gap: 3px;
+  margin-top: 5px;
   font-size: 11px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
