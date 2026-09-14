@@ -112,11 +112,14 @@
   gap: 8px;
 }
 
+/* Plain, not tinted to the metric — only the delta below carries colour,
+   so green/red reads as a judgement rather than competing with four other
+   accent hues on the same row. */
 .mcard__value {
   font-family: var(--font-hud);
   font-size: 17px;
   font-weight: 700;
-  color: var(--tone);
+  color: var(--text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   line-height: 1.1;
@@ -126,8 +129,7 @@
   margin-left: 3px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--tone);
-  opacity: 0.75;
+  color: var(--text-dim);
 }
 
 /* A compact graph beside the value, not a full-width strip — styled like

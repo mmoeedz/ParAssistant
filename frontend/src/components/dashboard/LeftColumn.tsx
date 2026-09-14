@@ -148,7 +148,7 @@ function MetricCard({ value, unit, history, deltaFormat, deltaUnit = '', color, 
         : `${trend === 'up' ? '+' : ''}${diff.toFixed(deltaUnit === 'ms' ? 0 : 1)}${deltaUnit}`
 
   return (
-    <div className="mcard" style={{ ['--tone' as string]: color }} title={title}>
+    <div className="mcard" title={title}>
       <div className="mcard__top">
         <div className="mcard__value">
           {value}
