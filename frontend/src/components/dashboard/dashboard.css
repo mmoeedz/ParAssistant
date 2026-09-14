@@ -372,6 +372,11 @@
   animation: arc-flow 1.4s linear infinite;
 }
 
+/* The dot that actually travels the route, via animateMotion on the path. */
+.map__pulse {
+  opacity: 0.9;
+}
+
 /* The vertical light columns the reference puts over its busiest nodes. */
 .map__beam {
   stroke-linecap: round;

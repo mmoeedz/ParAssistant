@@ -14,7 +14,7 @@ import { useSession } from '@/store/session'
 import { useFps } from '@/hooks/useFps'
 import { AGENTS } from '@/types/agents'
 import { statusLabel } from './panels'
-import { ARCS, NODES, TONE_VAR, arcPath, worldDots } from './world'
+import { ARC_INDICES_BY_AGENT, ARCS, NODE_INDICES_BY_AGENT, NODES, TONE_VAR, arcPath, rotatingIndex, worldDots } from './world'
 import './dashboard.css'
 
 /* ------------------------------------------------------- system overview -- */
@@ -319,16 +319,30 @@ export function CurrentTaskCard() {
 
 const DOTS = worldDots()
 
+/** How long one city/route stays "live" before activity rotates to another. */
+const ROTATE_MS = 1700
+
 export function GlobalActivity() {
   const agents = useSession((s) => s.agents)
   const tasks = useSession((s) => s.tasks)
   const console_ = useSession((s) => s.console)
   const setView = useSession((s) => s.setView)
+  useTick(ROTATE_MS)
 
   const active = AGENTS.filter((a) => agents[a.id].state !== 'standby').length
   const running = tasks.filter((t) => !t.endedAt).length
   const errors = console_.filter((l) => l.level === 'error').length
   const requests = Object.values(agents).reduce((sum, a) => sum + a.runs, 0)
+
+  // Only one of a busy agent's cities — and one of its routes — is "in
+  // flight" at a time, rotating every ROTATE_MS. A live map showing every
+  // possible endpoint lit at once for the whole life of a task reads as
+  // decoration; a single pulse that moves reads as an actual request.
+  const now = Date.now()
+  const liveNode = (agentId: (typeof AGENTS)[number]['id']) =>
+    rotatingIndex(NODE_INDICES_BY_AGENT[agentId], ROTATE_MS, now)
+  const liveArc = (agentId: (typeof AGENTS)[number]['id']) =>
+    rotatingIndex(ARC_INDICES_BY_AGENT[agentId], ROTATE_MS, now)
 
   return (
     <section className="panel">
@@ -362,20 +376,25 @@ export function GlobalActivity() {
             ))}
 
             {ARCS.map((arc, i) => {
-              const on = agents[arc.agent].state !== 'standby'
+              const busy = agents[arc.agent].state !== 'standby'
+              const on = busy && liveArc(arc.agent) === i
+              const d = arcPath(NODES[arc.from], NODES[arc.to], arc.bow)
+              const tone = TONE_VAR[arc.tone]
               return (
-                <path
-                  key={i}
-                  d={arcPath(NODES[arc.from], NODES[arc.to], arc.bow)}
-                  className="map__arc"
-                  data-on={on}
-                  stroke={TONE_VAR[arc.tone]}
-                />
+                <g key={i}>
+                  <path d={d} className="map__arc" data-on={on} stroke={tone} />
+                  {on ? (
+                    <circle r="0.9" fill={tone} className="map__pulse" filter="url(#mapGlow)">
+                      <animateMotion dur="1.6s" repeatCount="indefinite" path={d} />
+                    </circle>
+                  ) : null}
+                </g>
               )
             })}
 
             {NODES.map((node, i) => {
-              const on = agents[node.agent].state !== 'standby'
+              const busy = agents[node.agent].state !== 'standby'
+              const on = busy && liveNode(node.agent) === i
               const tone = TONE_VAR[node.tone]
               return (
                 <g key={i} className="map__node" data-on={on}>
@@ -389,13 +408,12 @@ export function GlobalActivity() {
                       stroke={tone}
                       strokeWidth={node.size * 0.7}
                       filter="url(#mapGlow)"
-                      style={{ animationDelay: `${(i % 5) * 0.4}s` }}
                     />
                   ) : null}
                   <circle cx={node.x} cy={node.y} r={node.size * 2.1} fill={tone}
                           className="map__halo" />
                   <circle cx={node.x} cy={node.y} r={node.size} fill={tone}
-                          filter="url(#mapGlow)" style={{ animationDelay: `${(i % 7) * 0.3}s` }} />
+                          filter="url(#mapGlow)" />
                 </g>
               )
             })}
