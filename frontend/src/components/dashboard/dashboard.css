@@ -2,7 +2,11 @@
 
 .rings {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  /* Fixed, not 1fr: keeps each ring the same compact size it was when a
+     5th (VRAM) ring shared this row, instead of stretching to fill the
+     space that freed up — extra room just sits empty at the row's end. */
+  grid-template-columns: repeat(4, 64px);
+  justify-content: start;
   gap: var(--sp-2);
   padding: var(--sp-1) 0 var(--sp-2);
 }

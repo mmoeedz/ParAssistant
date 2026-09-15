@@ -53,6 +53,7 @@
   /* hardware metric cards — one fixed hue per card, independent of the
      agent accents above (a metric card is not an agent) */
   --metric-fps: #34d399;
+  --metric-vram: #f472b6;
   --metric-cpu: #fb923c;
   --metric-gpu: #22d3ee;
   --metric-latency: #a78bfa;
@@ -155,6 +156,7 @@
   --a-kai: #9a7500;
 
   --metric-fps: #0f9d67;
+  --metric-vram: #be185d;
   --metric-cpu: #c2540a;
   --metric-gpu: #0891b2;
   --metric-latency: #7c4fd6;

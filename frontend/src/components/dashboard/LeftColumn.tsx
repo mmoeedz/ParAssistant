@@ -198,8 +198,8 @@ export function SystemOverview() {
   }
 
   const fpsHistory = useHistory(fps)
+  const vramHistory = useHistory(stats?.vram?.percent ?? null, stats?.capturedAt)
   const cpuTempHistory = useHistory(stats?.cpuTempC ?? null, stats?.capturedAt)
-  const gpuTempHistory = useHistory(stats?.gpuTempC ?? null, stats?.capturedAt)
   const latencyHistory = useHistory(latencyMs)
 
   return (
@@ -213,12 +213,6 @@ export function SystemOverview() {
           <Ring label="CPU" value={stats?.cpu ?? null} tone="var(--accent)" />
           <Ring label="RAM" value={stats?.memory.percent ?? null} tone="var(--accent)" />
           <Ring label="GPU" value={stats?.gpu ?? null} tone="var(--accent)" />
-          <Ring
-            label="VRAM"
-            value={stats?.vram?.percent ?? null}
-            tone="var(--accent)"
-            title={stats?.vram ? `${gb(stats.vram.usedBytes)} / ${gb(stats.vram.totalBytes)}` : undefined}
-          />
           <Ring label="DISK" value={stats?.disk.percent ?? null} tone="var(--accent)" />
         </div>
         <Sparkline points={history.current} />
@@ -233,22 +227,26 @@ export function SystemOverview() {
             title="This interface's own render rate — there is no single Windows-wide FPS to read"
           />
           <MetricCard
+            value={stats?.vram ? String(Math.round(stats.vram.percent)) : '—'}
+            unit="VRAM %"
+            history={vramHistory}
+            deltaFormat="unit"
+            deltaUnit="%"
+            color="var(--metric-vram)"
+            title={
+              stats?.vram
+                ? `VRAM — ${gb(stats.vram.usedBytes)} / ${gb(stats.vram.totalBytes)}`
+                : 'VRAM — no source (nvidia-smi, or the GPU Adapter Memory counter) could read it'
+            }
+          />
+          <MetricCard
             value={stats?.cpuTempC !== undefined ? stats.cpuTempC.toFixed(1) : '—'}
-            unit="°c"
+            unit="CPU °c"
             history={cpuTempHistory}
             deltaFormat="unit"
             deltaUnit="°"
             color="var(--metric-cpu)"
             title="CPU — hottest thermal zone this machine exposes"
-          />
-          <MetricCard
-            value={stats?.gpuTempC !== undefined ? stats.gpuTempC.toFixed(1) : '—'}
-            unit="°c"
-            history={gpuTempHistory}
-            deltaFormat="unit"
-            deltaUnit="°"
-            color="var(--metric-gpu)"
-            title="GPU — hottest thermal zone this machine exposes"
           />
           <MetricCard
             value={latencyMs === null ? '—' : String(Math.round(latencyMs))}
