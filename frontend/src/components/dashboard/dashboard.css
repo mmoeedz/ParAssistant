@@ -90,10 +90,15 @@
 /* ----------------------------------------------------- hardware readout -- */
 
 /* Two columns, not four — at four-up, "CPU TEMP"/"GPU TEMP" and the delta
-   badge have nowhere to go and the label truncates to a single letter. */
+   badge have nowhere to go and the label truncates to a single letter.
+   Fixed width (matching .rings' own fixed 64px columns), not 1fr: lines
+   this row's total width up with the rings row above it instead of
+   stretching to fill the panel — still comfortably wider than the ~85px
+   four-column width that caused the truncation above. */
 .mgrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, 136px);
+  justify-content: start;
   gap: 8px;
   margin-top: 10px;
   padding-top: 10px;
