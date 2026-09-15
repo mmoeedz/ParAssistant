@@ -195,6 +195,9 @@ export interface SystemStats {
   /** Hottest matching Windows thermal zone, in °C. Omitted when unreadable. */
   cpuTempC?: number
   gpuTempC?: number
+  /** Dedicated video memory. Omitted when no source (nvidia-smi, or the GPU
+   *  Adapter Memory counter + registry capacity) can read it. */
+  vram?: { percent: number; usedBytes: number; totalBytes: number }
 }
 
 /* ----------------------------------------------------------------- voice -- */

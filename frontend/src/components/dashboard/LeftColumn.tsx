@@ -22,10 +22,12 @@ import './dashboard.css'
 const RING = 27
 const CIRC = 2 * Math.PI * RING
 
-function Ring({ label, value, tone }: { label: string; value: number | null; tone: string }) {
+function Ring({
+  label, value, tone, title,
+}: { label: string; value: number | null; tone: string; title?: string }) {
   const pct = value ?? 0
   return (
-    <div className="ring">
+    <div className="ring" title={title}>
       <svg viewBox="0 0 72 72" className="ring__svg">
         <circle cx="36" cy="36" r={RING} className="ring__track" />
         <circle
@@ -176,6 +178,10 @@ function MetricCard({ value, unit, history, deltaFormat, deltaUnit = '', color, 
   )
 }
 
+function gb(bytes: number): string {
+  return `${(bytes / 1_073_741_824).toFixed(1)} GB`
+}
+
 export function SystemOverview() {
   const stats = useSession((s) => s.stats)
   const latencyMs = useSession((s) => s.latencyMs)
@@ -207,6 +213,12 @@ export function SystemOverview() {
           <Ring label="CPU" value={stats?.cpu ?? null} tone="var(--accent)" />
           <Ring label="RAM" value={stats?.memory.percent ?? null} tone="var(--accent)" />
           <Ring label="GPU" value={stats?.gpu ?? null} tone="var(--accent)" />
+          <Ring
+            label="VRAM"
+            value={stats?.vram?.percent ?? null}
+            tone="var(--accent)"
+            title={stats?.vram ? `${gb(stats.vram.usedBytes)} / ${gb(stats.vram.totalBytes)}` : undefined}
+          />
           <Ring label="DISK" value={stats?.disk.percent ?? null} tone="var(--accent)" />
         </div>
         <Sparkline points={history.current} />

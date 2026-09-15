@@ -27,7 +27,9 @@ psutil.cpu_percent(interval=None)
 # GPU% and both temperatures all come from one PowerShell round trip, which
 # costs several hundred ms. Sample it on its own slow cadence in the
 # background and serve the cached values in between.
-_hw: dict[str, float | None] = {"gpu": None, "cpu_temp": None, "gpu_temp": None}
+_hw: dict[str, float | None] = {
+    "gpu": None, "cpu_temp": None, "gpu_temp": None, "vram_used": None, "vram_total": None,
+}
 _hw_at: float = 0.0
 _hw_lock = threading.Lock()
 HW_INTERVAL = 6.0
@@ -61,6 +63,16 @@ HW_INTERVAL = 6.0
 #     needs no admin rights — unambiguous when present, so it overrides
 #     whatever the two sources above found. AMD/Intel have no equivalent
 #     always-installed CLI, so there is no step 3 for those.
+#
+# VRAM (dedicated video memory) has the same shape: nvidia-smi reports it
+# directly and exactly; everything else falls back to the "GPU Adapter
+# Memory" performance counter for how much is in use (the same figure Task
+# Manager's own GPU memory graph is built from) and the registry's
+# HardwareInformation.qwMemorySize for capacity — Win32_VideoController's
+# AdapterRAM is a 32-bit field that wraps/misreports on any GPU with 4GB or
+# more, so it is not used here. When a machine has more than one adapter
+# (a discrete GPU plus an integrated one, say), the busiest/largest is
+# reported, same "hottest zone wins" reasoning as the temperatures above.
 _HW_SCRIPT = r"""
 $ProgressPreference = 'SilentlyContinue'
 $gpuPct = ''
@@ -111,12 +123,27 @@ if (-not $cpuC -or -not $gpuC) {
     } catch {}
 }
 
-Write-Output "$gpuPct|$cpuC|$gpuC"
+$vramUsed = ''
+$vramTotal = ''
+try {
+    $samples = (Get-Counter '\GPU Adapter Memory(*)\Dedicated Usage' -ErrorAction Stop).CounterSamples
+    if ($samples) { $vramUsed = ($samples | Measure-Object CookedValue -Maximum).Maximum }
+} catch {}
+try {
+    $key = 'HKLM:\SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}'
+    $totals = Get-ChildItem $key -ErrorAction Stop | ForEach-Object {
+        (Get-ItemProperty -Path $_.PSPath -Name 'HardwareInformation.qwMemorySize' `
+            -ErrorAction SilentlyContinue).'HardwareInformation.qwMemorySize'
+    } | Where-Object { $_ -gt 0 }
+    if ($totals) { $vramTotal = ($totals | Measure-Object -Maximum).Maximum }
+} catch {}
+
+Write-Output "$gpuPct|$cpuC|$gpuC|$vramUsed|$vramTotal"
 """
 
 
 def _parse_hw_line(line: str) -> dict[str, float | None]:
-    parts = (line.strip().split("|") + ["", "", ""])[:3]
+    parts = (line.strip().split("|") + ["", "", "", "", ""])[:5]
 
     def num(text: str) -> float | None:
         text = text.strip()
@@ -132,6 +159,8 @@ def _parse_hw_line(line: str) -> dict[str, float | None]:
         "gpu": min(100.0, gpu) if gpu is not None else None,
         "cpu_temp": num(parts[1]),
         "gpu_temp": num(parts[2]),
+        "vram_used": num(parts[3]),
+        "vram_total": num(parts[4]),
     }
 
 
@@ -150,6 +179,24 @@ def _read_nvidia_gpu_temp() -> float | None:
         return None
 
 
+def _read_nvidia_vram() -> tuple[float, float] | None:
+    """(used bytes, total bytes) straight from the driver — exact, no
+    counter/registry cross-referencing needed."""
+    try:
+        proc = subprocess.run(
+            ["nvidia-smi", "--query-gpu=memory.used,memory.total", "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=5, check=False,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        line = next((l for l in proc.stdout.splitlines() if l.strip()), None)
+        if not line:
+            return None
+        used_mb, total_mb = (float(part.strip()) for part in line.split(","))
+        return used_mb * 1_048_576, total_mb * 1_048_576
+    except Exception:
+        return None
+
+
 def _read_hardware() -> dict[str, float | None]:
     try:
         proc = subprocess.run(
@@ -160,21 +207,28 @@ def _read_hardware() -> dict[str, float | None]:
         # PowerShell may print a blank line or two before the result; take the
         # last non-empty one.
         lines = [line for line in proc.stdout.splitlines() if line.strip()]
-        values = _parse_hw_line(lines[-1]) if lines and "|" in lines[-1] else {
-            "gpu": None, "cpu_temp": None, "gpu_temp": None,
+        empty: dict[str, float | None] = {
+            "gpu": None, "cpu_temp": None, "gpu_temp": None, "vram_used": None, "vram_total": None,
         }
+        values = _parse_hw_line(lines[-1]) if lines and "|" in lines[-1] else empty
     except Exception:
-        values = {"gpu": None, "cpu_temp": None, "gpu_temp": None}
+        values = {
+            "gpu": None, "cpu_temp": None, "gpu_temp": None, "vram_used": None, "vram_total": None,
+        }
 
     nvidia_temp = _read_nvidia_gpu_temp()
     if nvidia_temp is not None:
         values["gpu_temp"] = nvidia_temp
 
+    nvidia_vram = _read_nvidia_vram()
+    if nvidia_vram is not None:
+        values["vram_used"], values["vram_total"] = nvidia_vram
+
     return values
 
 
 def hardware() -> dict[str, float | None]:
-    """Last known GPU%/CPU temp/GPU temp, refreshed in the background."""
+    """Last known GPU%/CPU temp/GPU temp/VRAM, refreshed in the background."""
     global _hw, _hw_at
 
     def refresh() -> None:
@@ -236,5 +290,11 @@ def sample() -> dict[str, Any]:
         stats["cpuTempC"] = hw["cpu_temp"]
     if hw["gpu_temp"] is not None:
         stats["gpuTempC"] = hw["gpu_temp"]
+    if hw["vram_used"] is not None and hw["vram_total"]:
+        stats["vram"] = {
+            "percent": round(hw["vram_used"] / hw["vram_total"] * 100, 1),
+            "usedBytes": int(hw["vram_used"]),
+            "totalBytes": int(hw["vram_total"]),
+        }
 
     return stats

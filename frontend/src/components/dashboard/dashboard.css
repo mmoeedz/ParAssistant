@@ -2,7 +2,7 @@
 
 .rings {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: var(--sp-2);
   padding: var(--sp-1) 0 var(--sp-2);
 }
