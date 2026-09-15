@@ -117,6 +117,9 @@ interface SessionState {
   headlines: Headline[]
   /** What is playing on the machine, or null when nothing is. */
   media: NowPlaying | null
+  /** performance.now() when `media.position` was last known true — the
+   *  baseline the now-playing clock extrapolates forward from. */
+  mediaSampledAt: number | null
   memory: { facts: MemoryFact[]; stats: MemoryStats | null }
   settings: Settings
 
@@ -317,6 +320,7 @@ export const useSession = create<SessionState>((set, get) => {
     latencyMs: null,
     headlines: [],
     media: null,
+    mediaSampledAt: null,
     memory: { facts: [], stats: null },
     settings: loadSettings(),
 
@@ -332,7 +336,7 @@ export const useSession = create<SessionState>((set, get) => {
     disconnect: () => {
       stopPingLoop()
       agentSocket.disconnect()
-      set({ connection: 'idle', backendInfo: null, stats: null, media: null, latencyMs: null })
+      set({ connection: 'idle', backendInfo: null, stats: null, media: null, mediaSampledAt: null, latencyMs: null })
     },
 
     submitPrompt: (text, source = 'text') => {
@@ -483,7 +487,7 @@ export const useSession = create<SessionState>((set, get) => {
         m.stopPreview()
         m.stopAmbient()
       })
-      set({ preview: false, stats: null, headlines: [], media: null, ...reset })
+      set({ preview: false, stats: null, headlines: [], media: null, mediaSampledAt: null, ...reset })
       if (get().settings.autoConnect) get().connect()
     },
 
@@ -491,10 +495,23 @@ export const useSession = create<SessionState>((set, get) => {
       // Flip play/pause straight away. The player takes up to a poll to report
       // the change, and a button that looks dead for a second reads as broken;
       // the next frame from the agent corrects this if the app refused.
-      const playing = get().media
-      if (action === 'toggle' && playing) {
+      //
+      // The freeze/resume point has to be where the clock actually is right
+      // now, not the last sample it arrived with — pausing mid-song must not
+      // snap the bar back to a position from up to a second ago.
+      const current = get().media
+      const sampledAt = get().mediaSampledAt
+      if (action === 'toggle' && current) {
+        const elapsedSincePlaying =
+          current.status === 'playing' && sampledAt != null ? (performance.now() - sampledAt) / 1000 : 0
+        const livePosition = Math.min(current.duration, current.position + elapsedSincePlaying)
         set({
-          media: { ...playing, status: playing.status === 'playing' ? 'paused' : 'playing' },
+          media: {
+            ...current,
+            position: livePosition,
+            status: current.status === 'playing' ? 'paused' : 'playing',
+          },
+          mediaSampledAt: performance.now(),
         })
       }
 
@@ -635,13 +652,33 @@ export const useSession = create<SessionState>((set, get) => {
         case 'media': {
           const incoming = event.media
           if (!incoming) {
-            set({ media: null })
+            set({ media: null, mediaSampledAt: null })
             break
           }
           // Art is only sent when the track changes; keep the one we have.
           const held = get().media
+          const heldSampledAt = get().mediaSampledAt
           const art = incoming.art ?? (held?.key === incoming.key ? held.art : null)
-          set({ media: { ...incoming, art } })
+
+          // The agent polls the OS player far more often than the OS actually
+          // moves that number — most samples repeat the previous position
+          // verbatim. Re-basing the clock to that stale value every time it
+          // repeats would show the clock ticking backward on every poll, since
+          // the local clock has kept counting forward in the meantime. Only
+          // treat a sample as fresh — and reset the clock to it — when the
+          // position has actually changed (a real tick, a seek, a play/pause
+          // flip, or a new track); an unchanged repeat is left running.
+          const stale =
+            held != null &&
+            heldSampledAt != null &&
+            held.key === incoming.key &&
+            held.status === incoming.status &&
+            held.position === incoming.position
+
+          const position = stale ? held.position : incoming.position
+          const sampledAt = stale ? heldSampledAt : performance.now()
+
+          set({ media: { ...incoming, art, position }, mediaSampledAt: sampledAt })
           break
         }
 
@@ -704,7 +741,7 @@ export function bootstrapTransport() {
       // Nothing is known about the machine now, the music included — a bar
       // left showing the last track would be claiming something it cannot see.
       stopPingLoop()
-      useSession.setState({ stats: null, media: null, latencyMs: null })
+      useSession.setState({ stats: null, media: null, mediaSampledAt: null, latencyMs: null })
     }
   }
   const { settings, connect } = useSession.getState()

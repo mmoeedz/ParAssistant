@@ -29,6 +29,7 @@ function sourceName(app: string): string {
 
 export function NowPlaying() {
   const media = useSession((s) => s.media)
+  const mediaSampledAt = useSession((s) => s.mediaSampledAt)
   const control = useSession((s) => s.mediaControl)
 
   const barRef = useRef<HTMLElement>(null)
@@ -45,10 +46,22 @@ export function NowPlaying() {
    * write it straight to the DOM — re-rendering the panel four times a second
    * to move one bar would be silly.
    *
+   * `position` and `mediaSampledAt` always describe the same instant — set
+   * together by every real sample and by the optimistic pause/resume in
+   * mediaControl — so this only ever extrapolates forward from a point that
+   * was true when it was set, instead of re-basing to a slightly stale
+   * position and visibly snapping the bar backward.
+   *
+   * Windows only updates a player's reported position occasionally — it can
+   * genuinely go 10+ real seconds between changes even mid-song — so elapsed
+   * time here is not capped short; the one thing that would make trusting it
+   * wrong, the connection dying, already clears `media` to null elsewhere and
+   * removes this panel entirely.
+   *
    * A timer rather than requestAnimationFrame: rAF stops when the window is
-   * not being painted, and the elapsed time is capped so that if this does
-   * stall, the bar cannot run away — the next sample is a second behind anyway.
-   * The 250ms step is smoothed by a matching CSS transition on the bar.
+   * not being painted, and the elapsed time is capped to the track's own
+   * length so the bar cannot run past the end it is still waiting to hear
+   * about. The 250ms step is smoothed by a matching CSS transition on the bar.
    */
   useEffect(() => {
     const bar = barRef.current
@@ -61,16 +74,19 @@ export function NowPlaying() {
       label.textContent = clock(at)
     }
 
-    paint(position)
-    if (!playing) return
+    if (!playing || mediaSampledAt == null) {
+      paint(position)
+      return
+    }
 
-    const from = performance.now()
-    const id = setInterval(() => {
-      const elapsed = Math.min((performance.now() - from) / 1000, 10)
+    const tick = () => {
+      const elapsed = (performance.now() - mediaSampledAt) / 1000
       paint(Math.min(position + elapsed, duration))
-    }, 250)
+    }
+    tick()
+    const id = setInterval(tick, 250)
     return () => clearInterval(id)
-  }, [position, duration, playing, key])
+  }, [position, duration, playing, key, mediaSampledAt])
 
   if (!media) return null
 
