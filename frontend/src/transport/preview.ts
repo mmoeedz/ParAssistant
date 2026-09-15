@@ -149,6 +149,8 @@ function nowPlaying(): NowPlaying {
     status: playing ? 'playing' : 'paused',
     advancing: playing,
     position,
+    positionAge: 0,
+    rate: 1,
     duration: track.duration,
     art: track.art,
     can: { play: true, next: true, previous: true, stop: true, seek: true },

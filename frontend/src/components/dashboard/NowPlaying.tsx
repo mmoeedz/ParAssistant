@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { Music, Pause, Play, SkipBack, SkipForward } from 'lucide-react'
 import { useSession } from '@/store/session'
+import { RUN_ON_MS, projectPosition } from '@/lib/mediaClock'
 import './dashboard.css'
 
 /**
@@ -20,13 +21,6 @@ function clock(seconds: number): string {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
 }
 
-/**
- * How far the local clock may run past the last position the player actually
- * confirmed. Long enough to smooth over a lazy reporter, short enough that a
- * player which stops talking altogether cannot drift minutes out of step.
- */
-const RUN_ON_MS = 10_000
-
 /** The app id Windows reports is a model id; show the readable half of it. */
 function sourceName(app: string): string {
   if (!app) return ''
@@ -37,7 +31,7 @@ function sourceName(app: string): string {
 
 export function NowPlaying() {
   const media = useSession((s) => s.media)
-  const mediaSampledAt = useSession((s) => s.mediaSampledAt)
+  const anchor = useSession((s) => s.mediaSampledAt)
   const control = useSession((s) => s.mediaControl)
   const seek = useSession((s) => s.mediaSeek)
 
@@ -45,20 +39,24 @@ export function NowPlaying() {
   const thumbRef = useRef<HTMLSpanElement>(null)
   const timeRef = useRef<HTMLSpanElement>(null)
   const scrubRef = useRef<HTMLDivElement>(null)
+  /** The whole second the label currently shows, so it is rewritten once a second, not every frame. */
+  const shownSecond = useRef(-1)
 
   const position = media?.position ?? 0
   const duration = media?.duration ?? 0
+  const rate = media?.rate ?? 1
   const key = media?.key
   const canSeek = Boolean(media?.can.seek) && duration > 0
 
   /**
-   * "Playing" is what the player claims; `advancing` is whether it is actually
-   * moving. They disagree when playback has been handed to another device —
-   * Spotify Connect keeps reporting "playing" on a track pinned in place — and
-   * when they do, believing the claim runs a clock for a song nobody is
-   * hearing. The panel follows the truth, so it stops where the track stopped.
+   * Whether the rail moves comes from `advancing` — the agent's reading of the
+   * timeline itself — not from `status`, which players get wrong in both
+   * directions: Spotify Connect reports "paused" while the song plays on the
+   * phone and "playing" while it sits paused. Buffering reads as not advancing,
+   * so the rail holds rather than moving on an assumption. `status` is only the
+   * fallback for an agent too old to send `advancing`.
    */
-  const playing = media?.status === 'playing' && media.advancing !== false
+  const playing = media?.advancing ?? media?.status === 'playing'
 
   /** Where the user is currently dragging to, in seconds — null when not scrubbing. */
   const [scrub, setScrub] = useState<number | null>(null)
@@ -66,11 +64,15 @@ export function NowPlaying() {
   const paint = (at: number) => {
     const bar = barRef.current
     const label = timeRef.current
-    if (!bar || !label || duration <= 0) return
-    const pct = Math.max(0, Math.min(100, (at / duration) * 100))
+    if (!bar || !label) return
+    const pct = duration > 0 ? Math.max(0, Math.min(100, (at / duration) * 100)) : 0
     bar.style.width = `${pct}%`
     if (thumbRef.current) thumbRef.current.style.left = `${pct}%`
-    label.textContent = clock(at)
+    const whole = Math.floor(at)
+    if (whole !== shownSecond.current) {
+      shownSecond.current = whole
+      label.textContent = clock(at)
+    }
   }
 
   const positionFromPointer = (clientX: number) => {
@@ -117,48 +119,42 @@ export function NowPlaying() {
   }
 
   /**
-   * The agent samples the player about once a second, which would step the bar
-   * along in visible jumps. Run the clock forward here between samples and
-   * write it straight to the DOM — re-rendering the panel four times a second
-   * to move one bar would be silly.
+   * One requestAnimationFrame loop, alive only while the track is really moving.
    *
-   * `position` and `mediaSampledAt` always describe the same instant — set
-   * together by every real sample and by the optimistic pause/resume in
-   * mediaControl — so this only ever extrapolates forward from a point that
-   * was true when it was set, instead of re-basing to a slightly stale
-   * position and visibly snapping the bar backward.
+   * Every frame reads the player's clock (projectPosition: the published
+   * position placed at the instant it was true, advanced at the player's own
+   * rate) and paints it — nothing is counted or accumulated here, so the rail
+   * cannot drift, scales with 0.5x/2x by construction, and after a stalled or
+   * hidden tab resumes exactly where the player is. Frame rate only decides
+   * how often the rail is painted, never how fast it moves.
    *
-   * Windows updates a player's reported position only occasionally, so the
-   * clock has to be run forward locally to read smoothly — but running it
-   * forward is a claim, and it is only allowed to outrun the last confirmed
-   * position by RUN_ON_MS. Past that the player has told us nothing for long
-   * enough that guessing would be inventing a position rather than smoothing
-   * one, so the bar holds where it was last known to be.
-   *
-   * While the user is dragging the bar themselves, `scrub` owns painting —
-   * this effect steps aside so the two don't fight over the same DOM nodes.
-   *
-   * A timer rather than requestAnimationFrame: rAF stops when the window is
-   * not being painted. The 250ms step is smoothed by a matching CSS
-   * transition on the bar.
+   * Any new sample, pause, seek or drag re-runs this effect, and its cleanup
+   * cancels the previous frame first, so there is never more than one loop.
+   * A layout effect so the rail is placed before the panel first paints.
    */
-  useEffect(() => {
-    if (duration <= 0 || scrub != null) return
+  useLayoutEffect(() => {
+    shownSecond.current = -1
+    if (scrub != null) return
 
-    if (!playing || mediaSampledAt == null) {
+    if (!playing || anchor == null || duration <= 0) {
       paint(position)
       return
     }
 
-    const tick = () => {
-      const elapsed = Math.min((performance.now() - mediaSampledAt) / 1000, RUN_ON_MS / 1000)
-      paint(Math.min(position + elapsed, duration))
+    let frame = 0
+    const step = (now: number) => {
+      const at = projectPosition({ position, duration, rate }, anchor, now)
+      paint(at)
+      // Ended (rail at 100%, elapsed = duration), or the player has gone quiet
+      // past RUN_ON_MS: the rail stays put until the next sample, so stop
+      // spending frames on it.
+      if (at >= duration || now - anchor >= RUN_ON_MS) return
+      frame = requestAnimationFrame(step)
     }
-    tick()
-    const id = setInterval(tick, 250)
-    return () => clearInterval(id)
+    step(performance.now())
+    return () => cancelAnimationFrame(frame)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- paint reads refs, not state
-  }, [position, duration, playing, key, mediaSampledAt, scrub])
+  }, [position, duration, rate, playing, key, anchor, scrub])
 
   if (!media) return null
 
@@ -195,9 +191,8 @@ export function NowPlaying() {
         </div>
 
         <div className="media__track">
-          <span className="media__time" ref={timeRef}>
-            {clock(media.position)}
-          </span>
+          {/* Written only by paint(), never by React, so a re-render cannot overwrite the live clock. */}
+          <span className="media__time" ref={timeRef} />
           <div
             ref={scrubRef}
             className="media__scrub"

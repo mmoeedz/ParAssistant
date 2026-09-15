@@ -161,13 +161,17 @@ export interface NowPlaying {
   app: string
   status: PlaybackStatus
   /**
-   * Whether the track is really moving. Players lie: Spotify handed off to a
-   * phone keeps republishing "playing" with the position pinned, so `status`
-   * alone would have the clock running for a song that is not playing.
+   * Whether the track is really moving, read from the timeline rather than
+   * `status`. Players get status wrong both ways: Spotify handed off to a phone
+   * reports "paused" while it plays and "playing" while it sits still.
    */
   advancing: boolean
-  /** seconds */
+  /** seconds — true as of `positionAge` seconds before the agent read it */
   position: number
+  /** how stale `position` already was when read; players publish it only every few seconds */
+  positionAge: number
+  /** playback speed the player reports; 1 when it reports none */
+  rate: number
   duration: number
   /** data URI, or null when it has not changed since the last frame */
   art: string | null

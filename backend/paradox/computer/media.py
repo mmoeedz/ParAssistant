@@ -27,15 +27,6 @@ _STATUS = {0: "closed", 1: "opened", 2: "changing", 3: "stopped", 4: "paused", 5
 _art_key: tuple[str, str] | None = None
 _art_value: str | None = None
 
-# Whether the track is really moving — see _advancing. Keyed on nothing: this
-# describes the one player this machine is showing, not any one UI session.
-_last_seen: tuple[str, float, float] | None = None  # key, position, last published
-_stalled_since: float | None = None
-
-# Grace period before calling a motionless player stalled, so a player that
-# reports whole seconds cannot be branded stalled between two ticks of one.
-_STALL_AFTER = 3.0
-
 
 # Imported up front on purpose: pulling a winrt module in from inside a running
 # event loop, mid-await, deadlocks on the COM apartment.
@@ -111,36 +102,57 @@ async def _thumbnail(reference: Any) -> str | None:
     return f"data:{kind};base64,{base64.b64encode(raw).decode('ascii')}"
 
 
+# What the last read of the player looked like — see _advancing. Module state,
+# not per UI session: it describes the one player this machine is showing.
+_prev_key: str | None = None
+_prev_publish: tuple[float, float] | None = None  # position, published_at
+_prev_status: str | None = None
+_status_changed_at = 0.0
+_moving = False
+
+# A republish that moved less than this is the player standing still.
+_STILL = 0.05
+
+
 def _advancing(key: str, position: float, published_at: float, status: str) -> bool:
-    """Whether the track is actually moving, rather than just claiming to.
+    """Whether the track is actually moving, decided from the timeline first.
 
-    Windows reports what the player publishes, and players lie. Spotify with
-    playback handed to another device (a phone, over Spotify Connect) keeps
-    republishing its timeline every few seconds with the position pinned where
-    it was and the status still reading "playing" — so a UI that believes the
-    status runs a clock for a song that is not playing.
+    `status` is the part players get wrong. Spotify with playback on a phone
+    (Spotify Connect) reports "paused" while the song plays — publishing a
+    position that advances in ~4.5s steps — and "playing" while it sits paused,
+    republishing a pinned position. Believing status there either freezes a
+    playing rail into 4.5s jumps or runs a stopped one. So motion decides:
 
-    A *fresh publish carrying the same position* is direct evidence the track
-    is not advancing, whatever the status says, and that is what this reports.
-    Silence is not evidence: a player that has not republished at all is left
-    alone, since that is also what a lazy but genuinely playing one looks like.
+    - a fresh publish that moved like playback (0.25x-4x the time between
+      publishes) means moving, whatever status says;
+    - a fresh publish that did not move means stopped, whatever status says;
+    - a status *change* is believed at once — a real pause or play shows there
+      before the next publish can prove it — and no publish from before that
+      change may overrule it;
+    - anything else (silence, or a seek, which proves nothing either way)
+      leaves the last decision standing. A new track starts from its status.
     """
-    global _last_seen, _stalled_since
-    previous, _last_seen = _last_seen, (key, position, published_at)
+    global _prev_key, _prev_publish, _prev_status, _status_changed_at, _moving
 
-    if status != "playing":
-        _stalled_since = None
-        return False
+    if key != _prev_key:
+        _prev_key, _prev_publish = key, None
+        _moving = status == "playing"
+    elif status != _prev_status:
+        _status_changed_at = time.time()
+        _moving = status == "playing"
 
-    moved = previous is None or previous[0] != key or previous[1] != position
-    republished = previous is not None and previous[2] != published_at
+    if _prev_publish is not None and published_at != _prev_publish[1]:
+        moved = position - _prev_publish[0]
+        between = published_at - _prev_publish[1]
+        if published_at > _status_changed_at:
+            if abs(moved) < _STILL:
+                _moving = False
+            elif between > 0 and 0.25 <= moved / between <= 4.0:
+                _moving = True
 
-    if moved:
-        _stalled_since = None
-    elif republished and _stalled_since is None:
-        _stalled_since = time.monotonic()
-
-    return _stalled_since is None or (time.monotonic() - _stalled_since) < _STALL_AFTER
+    _prev_publish = (position, published_at)
+    _prev_status = status
+    return _moving
 
 
 async def now_playing() -> dict[str, Any] | None:
@@ -191,6 +203,16 @@ async def _read() -> dict[str, Any] | None:
             f"{title}␟{artist}", position, timeline.last_updated_time.timestamp(), status
         ),
         "position": position,
+        # `position` is only true as of the player's last publish, which can be
+        # seconds ago. The UI needs that age to place it on the real timeline
+        # instead of treating a stale number as current. A player that never
+        # set the timestamp reports Windows' zero date (1601) — treat as fresh.
+        "positionAge": (
+            max(0.0, time.time() - timeline.last_updated_time.timestamp())
+            if timeline.last_updated_time.year >= 2000
+            else 0.0
+        ),
+        "rate": float(info.playback_rate or 1.0),
         "duration": timeline.end_time.total_seconds(),
         "art": _art_value,
         "can": {

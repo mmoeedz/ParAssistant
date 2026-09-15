@@ -30,6 +30,7 @@ import {
   type AgentState,
 } from '@/types/agents'
 import { DEFAULT_SETTINGS, type Settings } from '@/types/settings'
+import { projectPosition } from '@/lib/mediaClock'
 
 /** The reference has three top-level tabs; everything else lives inside them. */
 export type View = 'command' | 'agents' | 'system'
@@ -501,24 +502,26 @@ export const useSession = create<SessionState>((set, get) => {
       // now, not the last sample it arrived with — pausing mid-song must not
       // snap the bar back to a position from up to a second ago.
       const current = get().media
-      const sampledAt = get().mediaSampledAt
+      const anchor = get().mediaSampledAt
       if (action === 'toggle' && current) {
         // What the button means is whatever it is currently showing, and a
         // stalled player is shown stopped however it labels itself — so a
         // press on a "playing" session that is not moving reads as play, the
         // same way the real session will take it.
-        const running = current.status === 'playing' && current.advancing !== false
-        const elapsed = running && sampledAt != null ? (performance.now() - sampledAt) / 1000 : 0
+        const running = current.advancing ?? current.status === 'playing'
+        const now = performance.now()
         set({
           media: {
             ...current,
-            position: Math.min(current.duration, current.position + elapsed),
+            // Freeze exactly where the player's clock is at the press (rate
+            // included), not where the last sample happened to leave it.
+            position: running && anchor != null ? projectPosition(current, anchor, now) : current.position,
             status: running ? 'paused' : 'playing',
             // Start the clock on the press, not on the agent's next poll —
             // and never leave it running into a pause.
             advancing: !running,
           },
-          mediaSampledAt: performance.now(),
+          mediaSampledAt: now,
         })
       }
 
@@ -680,28 +683,16 @@ export const useSession = create<SessionState>((set, get) => {
           }
           // Art is only sent when the track changes; keep the one we have.
           const held = get().media
-          const heldSampledAt = get().mediaSampledAt
           const art = incoming.art ?? (held?.key === incoming.key ? held.art : null)
 
-          // The agent polls the OS player far more often than the OS actually
-          // moves that number — most samples repeat the previous position
-          // verbatim. Re-basing the clock to that stale value every time it
-          // repeats would show the clock ticking backward on every poll, since
-          // the local clock has kept counting forward in the meantime. Only
-          // treat a sample as fresh — and reset the clock to it — when the
-          // position has actually changed (a real tick, a seek, a play/pause
-          // flip, or a new track); an unchanged repeat is left running.
-          const stale =
-            held != null &&
-            heldSampledAt != null &&
-            held.key === incoming.key &&
-            held.status === incoming.status &&
-            held.position === incoming.position
-
-          const position = stale ? held.position : incoming.position
-          const sampledAt = stale ? heldSampledAt : performance.now()
-
-          set({ media: { ...incoming, art, position }, mediaSampledAt: sampledAt })
+          // The position was true when the player last published it, not when
+          // it reached us — up to several seconds earlier. Anchoring it at that
+          // real instant puts every sample on the player's own timeline, so a
+          // repeat of the same publish lands exactly where the rail already is
+          // and a fresh one only corrects by transit time. Anchoring at receipt
+          // instead is what made the rail lag, then leap 3-6s on each publish.
+          const age = Number.isFinite(incoming.positionAge) ? incoming.positionAge : 0
+          set({ media: { ...incoming, art }, mediaSampledAt: performance.now() - age * 1000 })
           break
         }
 
