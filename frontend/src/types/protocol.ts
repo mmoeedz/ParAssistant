@@ -160,6 +160,12 @@ export interface NowPlaying {
   /** the app's model id, e.g. Spotify's */
   app: string
   status: PlaybackStatus
+  /**
+   * Whether the track is really moving. Players lie: Spotify handed off to a
+   * phone keeps republishing "playing" with the position pinned, so `status`
+   * alone would have the clock running for a song that is not playing.
+   */
+  advancing: boolean
   /** seconds */
   position: number
   duration: number

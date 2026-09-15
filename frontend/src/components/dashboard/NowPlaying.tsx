@@ -20,6 +20,13 @@ function clock(seconds: number): string {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
 }
 
+/**
+ * How far the local clock may run past the last position the player actually
+ * confirmed. Long enough to smooth over a lazy reporter, short enough that a
+ * player which stops talking altogether cannot drift minutes out of step.
+ */
+const RUN_ON_MS = 10_000
+
 /** The app id Windows reports is a model id; show the readable half of it. */
 function sourceName(app: string): string {
   if (!app) return ''
@@ -41,9 +48,17 @@ export function NowPlaying() {
 
   const position = media?.position ?? 0
   const duration = media?.duration ?? 0
-  const playing = media?.status === 'playing'
   const key = media?.key
   const canSeek = Boolean(media?.can.seek) && duration > 0
+
+  /**
+   * "Playing" is what the player claims; `advancing` is whether it is actually
+   * moving. They disagree when playback has been handed to another device —
+   * Spotify Connect keeps reporting "playing" on a track pinned in place — and
+   * when they do, believing the claim runs a clock for a song nobody is
+   * hearing. The panel follows the truth, so it stops where the track stopped.
+   */
+  const playing = media?.status === 'playing' && media.advancing !== false
 
   /** Where the user is currently dragging to, in seconds — null when not scrubbing. */
   const [scrub, setScrub] = useState<number | null>(null)
@@ -113,19 +128,19 @@ export function NowPlaying() {
    * was true when it was set, instead of re-basing to a slightly stale
    * position and visibly snapping the bar backward.
    *
-   * Windows only updates a player's reported position occasionally — it can
-   * genuinely go 10+ real seconds between changes even mid-song — so elapsed
-   * time here is not capped short; the one thing that would make trusting it
-   * wrong, the connection dying, already clears `media` to null elsewhere and
-   * removes this panel entirely.
+   * Windows updates a player's reported position only occasionally, so the
+   * clock has to be run forward locally to read smoothly — but running it
+   * forward is a claim, and it is only allowed to outrun the last confirmed
+   * position by RUN_ON_MS. Past that the player has told us nothing for long
+   * enough that guessing would be inventing a position rather than smoothing
+   * one, so the bar holds where it was last known to be.
    *
    * While the user is dragging the bar themselves, `scrub` owns painting —
    * this effect steps aside so the two don't fight over the same DOM nodes.
    *
    * A timer rather than requestAnimationFrame: rAF stops when the window is
-   * not being painted, and the elapsed time is capped to the track's own
-   * length so the bar cannot run past the end it is still waiting to hear
-   * about. The 250ms step is smoothed by a matching CSS transition on the bar.
+   * not being painted. The 250ms step is smoothed by a matching CSS
+   * transition on the bar.
    */
   useEffect(() => {
     if (duration <= 0 || scrub != null) return
@@ -136,7 +151,7 @@ export function NowPlaying() {
     }
 
     const tick = () => {
-      const elapsed = (performance.now() - mediaSampledAt) / 1000
+      const elapsed = Math.min((performance.now() - mediaSampledAt) / 1000, RUN_ON_MS / 1000)
       paint(Math.min(position + elapsed, duration))
     }
     tick()

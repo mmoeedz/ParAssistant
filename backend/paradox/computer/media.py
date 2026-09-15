@@ -15,6 +15,7 @@ import asyncio
 import base64
 import logging
 import threading
+import time
 from typing import Any
 
 log = logging.getLogger(__name__)
@@ -25,6 +26,15 @@ _STATUS = {0: "closed", 1: "opened", 2: "changing", 3: "stopped", 4: "paused", 5
 # Album art is a few hundred KB and only changes with the track. Decode it once.
 _art_key: tuple[str, str] | None = None
 _art_value: str | None = None
+
+# Whether the track is really moving — see _advancing. Keyed on nothing: this
+# describes the one player this machine is showing, not any one UI session.
+_last_seen: tuple[str, float, float] | None = None  # key, position, last published
+_stalled_since: float | None = None
+
+# Grace period before calling a motionless player stalled, so a player that
+# reports whole seconds cannot be branded stalled between two ticks of one.
+_STALL_AFTER = 3.0
 
 
 # Imported up front on purpose: pulling a winrt module in from inside a running
@@ -101,6 +111,38 @@ async def _thumbnail(reference: Any) -> str | None:
     return f"data:{kind};base64,{base64.b64encode(raw).decode('ascii')}"
 
 
+def _advancing(key: str, position: float, published_at: float, status: str) -> bool:
+    """Whether the track is actually moving, rather than just claiming to.
+
+    Windows reports what the player publishes, and players lie. Spotify with
+    playback handed to another device (a phone, over Spotify Connect) keeps
+    republishing its timeline every few seconds with the position pinned where
+    it was and the status still reading "playing" — so a UI that believes the
+    status runs a clock for a song that is not playing.
+
+    A *fresh publish carrying the same position* is direct evidence the track
+    is not advancing, whatever the status says, and that is what this reports.
+    Silence is not evidence: a player that has not republished at all is left
+    alone, since that is also what a lazy but genuinely playing one looks like.
+    """
+    global _last_seen, _stalled_since
+    previous, _last_seen = _last_seen, (key, position, published_at)
+
+    if status != "playing":
+        _stalled_since = None
+        return False
+
+    moved = previous is None or previous[0] != key or previous[1] != position
+    republished = previous is not None and previous[2] != published_at
+
+    if moved:
+        _stalled_since = None
+    elif republished and _stalled_since is None:
+        _stalled_since = time.monotonic()
+
+    return _stalled_since is None or (time.monotonic() - _stalled_since) < _STALL_AFTER
+
+
 async def now_playing() -> dict[str, Any] | None:
     """The current track, or None when nothing is playing on this machine."""
     if not AVAILABLE:
@@ -137,6 +179,7 @@ async def _read() -> dict[str, Any] | None:
             _art_value = None
         _art_key = key
 
+    position = timeline.position.total_seconds()
     controls = info.controls
     return {
         "title": title,
@@ -144,7 +187,10 @@ async def _read() -> dict[str, Any] | None:
         "album": (props.album_title or "").strip() or None,
         "app": session.source_app_user_model_id or "",
         "status": status,
-        "position": timeline.position.total_seconds(),
+        "advancing": _advancing(
+            f"{title}␟{artist}", position, timeline.last_updated_time.timestamp(), status
+        ),
+        "position": position,
         "duration": timeline.end_time.total_seconds(),
         "art": _art_value,
         "can": {

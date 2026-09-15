@@ -147,6 +147,7 @@ function nowPlaying(): NowPlaying {
     album: track.album,
     app: 'Preview',
     status: playing ? 'playing' : 'paused',
+    advancing: playing,
     position,
     duration: track.duration,
     art: track.art,

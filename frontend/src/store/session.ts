@@ -503,14 +503,20 @@ export const useSession = create<SessionState>((set, get) => {
       const current = get().media
       const sampledAt = get().mediaSampledAt
       if (action === 'toggle' && current) {
-        const elapsedSincePlaying =
-          current.status === 'playing' && sampledAt != null ? (performance.now() - sampledAt) / 1000 : 0
-        const livePosition = Math.min(current.duration, current.position + elapsedSincePlaying)
+        // What the button means is whatever it is currently showing, and a
+        // stalled player is shown stopped however it labels itself — so a
+        // press on a "playing" session that is not moving reads as play, the
+        // same way the real session will take it.
+        const running = current.status === 'playing' && current.advancing !== false
+        const elapsed = running && sampledAt != null ? (performance.now() - sampledAt) / 1000 : 0
         set({
           media: {
             ...current,
-            position: livePosition,
-            status: current.status === 'playing' ? 'paused' : 'playing',
+            position: Math.min(current.duration, current.position + elapsed),
+            status: running ? 'paused' : 'playing',
+            // Start the clock on the press, not on the agent's next poll —
+            // and never leave it running into a pause.
+            advancing: !running,
           },
           mediaSampledAt: performance.now(),
         })
