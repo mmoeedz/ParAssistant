@@ -41,12 +41,26 @@ HW_INTERVAL = 6.0
 # earlier code here did — double-counts whenever more than one engine type is
 # active at once (e.g. 3D + video decode) and overstates load.
 #
-# Thermal-zone temperatures come from Win32_PerfFormattedData_..., which is
-# readable without admin rights on this machine (confirmed: MSAcpi_Thermal-
-# ZoneTemperature under root/wmi needs elevation and is not used). Values are
-# tenths of a degree Kelvin; zone names are OEM-defined, so CPU/GPU are
-# matched by substring and, when a machine exposes more than one matching
-# zone, the hottest is reported — that is the one that would throttle first.
+# Temperatures have no single reliable source across arbitrary Windows PCs,
+# so this tries three, in order, and keeps whatever the first working one
+# reports:
+#
+#  1. LibreHardwareMonitor / OpenHardwareMonitor, if the user has either
+#     running — real per-sensor labels ("CPU Package", "GPU Core"), no
+#     guessing needed. Most machines will not have this installed, but any
+#     that do get the most accurate reading.
+#  2. ACPI thermal zones (Win32_PerfFormattedData_...), readable without
+#     admin rights. Zone names are OEM-defined — some boards name them "CPU"/
+#     "GFX" and this matches those by substring; a great many others use
+#     opaque identifiers like "\_TZ.TZ10" with nothing to match on, and this
+#     source simply reports nothing rather than guess which zone is which.
+#     (MSAcpi_ThermalZoneTemperature under root/wmi needs elevation and is
+#     not used.) When more than one zone matches, the hottest is reported —
+#     that is the one that would throttle first.
+#  3. For GPU only: nvidia-smi, which ships with every NVIDIA driver and
+#     needs no admin rights — unambiguous when present, so it overrides
+#     whatever the two sources above found. AMD/Intel have no equivalent
+#     always-installed CLI, so there is no step 3 for those.
 _HW_SCRIPT = r"""
 $ProgressPreference = 'SilentlyContinue'
 $gpuPct = ''
@@ -61,16 +75,41 @@ try {
 
 $cpuC = ''
 $gpuC = ''
-try {
-    $zones = Get-CimInstance -Namespace root/cimv2 `
-        -ClassName Win32_PerfFormattedData_Counters_ThermalZoneInformation -ErrorAction Stop
-    $cpuVals = $zones | Where-Object { $_.Name -match 'CPU' } |
-        ForEach-Object { $_.HighPrecisionTemperature / 10.0 - 273.15 }
-    $gpuVals = $zones | Where-Object { $_.Name -match 'GFX|GPU' } |
-        ForEach-Object { $_.HighPrecisionTemperature / 10.0 - 273.15 }
-    if ($cpuVals) { $cpuC = [math]::Round(($cpuVals | Measure-Object -Maximum).Maximum, 1) }
-    if ($gpuVals) { $gpuC = [math]::Round(($gpuVals | Measure-Object -Maximum).Maximum, 1) }
-} catch {}
+
+foreach ($ns in 'root/LibreHardwareMonitor', 'root/OpenHardwareMonitor') {
+    if ($cpuC -and $gpuC) { break }
+    try {
+        $sensors = Get-CimInstance -Namespace $ns -ClassName Sensor -ErrorAction Stop |
+            Where-Object { $_.SensorType -eq 'Temperature' }
+        if (-not $cpuC) {
+            $cpu = $sensors | Where-Object { $_.Name -match 'CPU Package|CPU Core' } |
+                Sort-Object Value -Descending | Select-Object -First 1
+            if ($cpu) { $cpuC = [math]::Round($cpu.Value, 1) }
+        }
+        if (-not $gpuC) {
+            $gpu = $sensors | Where-Object { $_.Name -match 'GPU Core|GPU Hot Spot' } |
+                Sort-Object Value -Descending | Select-Object -First 1
+            if ($gpu) { $gpuC = [math]::Round($gpu.Value, 1) }
+        }
+    } catch {}
+}
+
+if (-not $cpuC -or -not $gpuC) {
+    try {
+        $zones = Get-CimInstance -Namespace root/cimv2 `
+            -ClassName Win32_PerfFormattedData_Counters_ThermalZoneInformation -ErrorAction Stop
+        if (-not $cpuC) {
+            $cpuVals = $zones | Where-Object { $_.Name -match 'CPU' } |
+                ForEach-Object { $_.HighPrecisionTemperature / 10.0 - 273.15 }
+            if ($cpuVals) { $cpuC = [math]::Round(($cpuVals | Measure-Object -Maximum).Maximum, 1) }
+        }
+        if (-not $gpuC) {
+            $gpuVals = $zones | Where-Object { $_.Name -match 'GFX|GPU' } |
+                ForEach-Object { $_.HighPrecisionTemperature / 10.0 - 273.15 }
+            if ($gpuVals) { $gpuC = [math]::Round(($gpuVals | Measure-Object -Maximum).Maximum, 1) }
+        }
+    } catch {}
+}
 
 Write-Output "$gpuPct|$cpuC|$gpuC"
 """
@@ -96,6 +135,21 @@ def _parse_hw_line(line: str) -> dict[str, float | None]:
     }
 
 
+def _read_nvidia_gpu_temp() -> float | None:
+    """NVIDIA's own driver tool — unambiguous when there's an NVIDIA GPU, and
+    needs no admin rights or separate install; it ships with the driver."""
+    try:
+        proc = subprocess.run(
+            ["nvidia-smi", "--query-gpu=temperature.gpu", "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=5, check=False,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        lines = [line for line in proc.stdout.splitlines() if line.strip()]
+        return float(lines[0].strip()) if lines else None
+    except Exception:
+        return None
+
+
 def _read_hardware() -> dict[str, float | None]:
     try:
         proc = subprocess.run(
@@ -106,11 +160,17 @@ def _read_hardware() -> dict[str, float | None]:
         # PowerShell may print a blank line or two before the result; take the
         # last non-empty one.
         lines = [line for line in proc.stdout.splitlines() if line.strip()]
-        if not lines or "|" not in lines[-1]:
-            return {"gpu": None, "cpu_temp": None, "gpu_temp": None}
-        return _parse_hw_line(lines[-1])
+        values = _parse_hw_line(lines[-1]) if lines and "|" in lines[-1] else {
+            "gpu": None, "cpu_temp": None, "gpu_temp": None,
+        }
     except Exception:
-        return {"gpu": None, "cpu_temp": None, "gpu_temp": None}
+        values = {"gpu": None, "cpu_temp": None, "gpu_temp": None}
+
+    nvidia_temp = _read_nvidia_gpu_temp()
+    if nvidia_temp is not None:
+        values["gpu_temp"] = nvidia_temp
+
+    return values
 
 
 def hardware() -> dict[str, float | None]:
