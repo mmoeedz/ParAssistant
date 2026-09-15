@@ -1408,13 +1408,34 @@
   font-variant-numeric: tabular-nums;
 }
 
-.media__bar {
+/* The hit area is taller than the visible track so dragging is easy to grab;
+   the track itself only grows on hover/drag as a hint that it is scrubbable. */
+.media__scrub {
+  position: relative;
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 14px;
+  touch-action: none;
+}
+
+.media__scrub[data-seekable='true'] {
+  cursor: pointer;
+}
+
+.media__bar {
+  width: 100%;
   height: 4px;
   border-radius: var(--r-full);
   background: var(--surface-3);
   overflow: hidden;
+  transition: height 120ms var(--ease);
+}
+
+.media__scrub[data-seekable='true']:hover .media__bar,
+.media__scrub[data-dragging='true'] .media__bar {
+  height: 6px;
 }
 
 /* The component writes a new width every 250ms; the transition matches that
@@ -1427,6 +1448,33 @@
   background: var(--accent);
   box-shadow: var(--accent-glow);
   transition: width 250ms linear;
+}
+
+.media__thumb {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  box-shadow: var(--accent-glow);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms var(--ease), left 250ms linear;
+}
+
+.media__scrub[data-seekable='true']:hover .media__thumb,
+.media__scrub[data-dragging='true'] .media__thumb {
+  opacity: 1;
+}
+
+/* While actively dragging, the pointer must win every frame — the 250ms
+   transitions built for the passive auto-tick would otherwise lag behind it. */
+.media__scrub[data-dragging='true'] .media__bar b,
+.media__scrub[data-dragging='true'] .media__thumb {
+  transition: none;
 }
 
 .media__controls {

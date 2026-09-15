@@ -165,7 +165,7 @@ export interface NowPlaying {
   duration: number
   /** data URI, or null when it has not changed since the last frame */
   art: string | null
-  can: { play: boolean; next: boolean; previous: boolean; stop: boolean }
+  can: { play: boolean; next: boolean; previous: boolean; stop: boolean; seek: boolean }
 }
 
 export type MediaAction = 'toggle' | 'next' | 'previous' | 'stop'
@@ -236,4 +236,5 @@ export type ClientEvent =
   | { type: 'memory.forget'; id: number }
   | { type: 'memory.clear'; kind?: MemoryKind }
   | { type: 'media.control'; action: MediaAction }
+  | { type: 'media.seek'; positionSeconds: number }
   | { type: 'ping'; id: string }

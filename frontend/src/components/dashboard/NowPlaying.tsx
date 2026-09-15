@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react'
-import { Music, Pause, Play, SkipBack, SkipForward, Square } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import type { PointerEvent as ReactPointerEvent } from 'react'
+import { Music, Pause, Play, SkipBack, SkipForward } from 'lucide-react'
 import { useSession } from '@/store/session'
 import './dashboard.css'
 
@@ -31,14 +32,74 @@ export function NowPlaying() {
   const media = useSession((s) => s.media)
   const mediaSampledAt = useSession((s) => s.mediaSampledAt)
   const control = useSession((s) => s.mediaControl)
+  const seek = useSession((s) => s.mediaSeek)
 
   const barRef = useRef<HTMLElement>(null)
+  const thumbRef = useRef<HTMLSpanElement>(null)
   const timeRef = useRef<HTMLSpanElement>(null)
+  const scrubRef = useRef<HTMLDivElement>(null)
 
   const position = media?.position ?? 0
   const duration = media?.duration ?? 0
   const playing = media?.status === 'playing'
   const key = media?.key
+  const canSeek = Boolean(media?.can.seek) && duration > 0
+
+  /** Where the user is currently dragging to, in seconds — null when not scrubbing. */
+  const [scrub, setScrub] = useState<number | null>(null)
+
+  const paint = (at: number) => {
+    const bar = barRef.current
+    const label = timeRef.current
+    if (!bar || !label || duration <= 0) return
+    const pct = Math.max(0, Math.min(100, (at / duration) * 100))
+    bar.style.width = `${pct}%`
+    if (thumbRef.current) thumbRef.current.style.left = `${pct}%`
+    label.textContent = clock(at)
+  }
+
+  const positionFromPointer = (clientX: number) => {
+    const el = scrubRef.current
+    if (!el || duration <= 0) return 0
+    const rect = el.getBoundingClientRect()
+    const frac = rect.width > 0 ? (clientX - rect.left) / rect.width : 0
+    return Math.max(0, Math.min(1, frac)) * duration
+  }
+
+  const onScrubDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!canSeek) return
+    const at = positionFromPointer(e.clientX)
+    setScrub(at)
+    paint(at)
+    // If this throws (an odd device, a synthetic pointer id), the drag still
+    // ends correctly — onScrubEnd below is what actually clears it, not this.
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      /* not fatal — see comment above */
+    }
+  }
+
+  const onScrubMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (scrub == null) return
+    const at = positionFromPointer(e.clientX)
+    setScrub(at)
+    paint(at)
+  }
+
+  /**
+   * The one place a drag ends — pointerup, pointercancel, or the browser
+   * revoking capture for any other reason (onLostPointerCapture fires for
+   * all of these). Committing the seek only here, instead of in onPointerUp,
+   * means a dropped or out-of-window pointerup can never leave the bar
+   * stuck mid-drag showing a frozen clock forever.
+   */
+  const onScrubEnd = () => {
+    setScrub((current) => {
+      if (current != null) seek(current)
+      return null
+    })
+  }
 
   /**
    * The agent samples the player about once a second, which would step the bar
@@ -58,21 +119,16 @@ export function NowPlaying() {
    * wrong, the connection dying, already clears `media` to null elsewhere and
    * removes this panel entirely.
    *
+   * While the user is dragging the bar themselves, `scrub` owns painting —
+   * this effect steps aside so the two don't fight over the same DOM nodes.
+   *
    * A timer rather than requestAnimationFrame: rAF stops when the window is
    * not being painted, and the elapsed time is capped to the track's own
    * length so the bar cannot run past the end it is still waiting to hear
    * about. The 250ms step is smoothed by a matching CSS transition on the bar.
    */
   useEffect(() => {
-    const bar = barRef.current
-    const label = timeRef.current
-    if (!bar || !label || duration <= 0) return
-
-    const paint = (at: number) => {
-      const pct = Math.max(0, Math.min(100, (at / duration) * 100))
-      bar.style.width = `${pct}%`
-      label.textContent = clock(at)
-    }
+    if (duration <= 0 || scrub != null) return
 
     if (!playing || mediaSampledAt == null) {
       paint(position)
@@ -86,7 +142,8 @@ export function NowPlaying() {
     tick()
     const id = setInterval(tick, 250)
     return () => clearInterval(id)
-  }, [position, duration, playing, key, mediaSampledAt])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- paint reads refs, not state
+  }, [position, duration, playing, key, mediaSampledAt, scrub])
 
   if (!media) return null
 
@@ -126,9 +183,23 @@ export function NowPlaying() {
           <span className="media__time" ref={timeRef}>
             {clock(media.position)}
           </span>
-          <span className="media__bar">
-            <b ref={barRef} />
-          </span>
+          <div
+            ref={scrubRef}
+            className="media__scrub"
+            data-seekable={canSeek}
+            data-dragging={scrub != null}
+            onPointerDown={onScrubDown}
+            onPointerMove={onScrubMove}
+            onPointerUp={onScrubEnd}
+            onPointerCancel={onScrubEnd}
+            onLostPointerCapture={onScrubEnd}
+            title={canSeek ? 'Drag to jump to a point in the track' : undefined}
+          >
+            <span className="media__bar">
+              <b ref={barRef} />
+            </span>
+            <span className="media__thumb" ref={thumbRef} />
+          </div>
           <span className="media__time">{clock(media.duration)}</span>
         </div>
 
@@ -149,15 +220,6 @@ export function NowPlaying() {
             title={playing ? 'Pause' : 'Play'}
           >
             {playing ? <Pause size={18} /> : <Play size={18} />}
-          </button>
-          <button
-            type="button"
-            className="media__btn"
-            disabled={!media.can.stop}
-            onClick={() => control('stop')}
-            title="Stop"
-          >
-            <Square size={14} />
           </button>
           <button
             type="button"

@@ -150,7 +150,7 @@ function nowPlaying(): NowPlaying {
     position,
     duration: track.duration,
     art: track.art,
-    can: { play: true, next: true, previous: true, stop: true },
+    can: { play: true, next: true, previous: true, stop: true, seek: true },
   }
 }
 
@@ -183,6 +183,12 @@ export function previewMedia(action: MediaAction, emit: Emit) {
       position = 0
     }
   }
+  emit({ type: 'media', media: nowPlaying() })
+}
+
+/** Scrubbing the timeline in preview jumps the scripted track, nothing else. */
+export function previewSeek(positionSeconds: number, emit: Emit) {
+  position = Math.max(0, Math.min(TRACKS[trackIndex].duration, positionSeconds))
   emit({ type: 'media', media: nowPlaying() })
 }
 

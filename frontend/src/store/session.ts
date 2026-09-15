@@ -142,6 +142,7 @@ interface SessionState {
   applyServerEvent: (event: ServerEvent) => void
   setPreview: (on: boolean) => void
   mediaControl: (action: MediaAction) => void
+  mediaSeek: (positionSeconds: number) => void
   clearConversation: () => void
   log: (level: ConsoleLine['level'], source: string, text: string) => void
 }
@@ -520,6 +521,22 @@ export const useSession = create<SessionState>((set, get) => {
         return
       }
       agentSocket.send({ type: 'media.control', action })
+    },
+
+    mediaSeek: (positionSeconds) => {
+      // Scrubbing needs the same zero-latency treatment as pause/resume: jump
+      // the bar to the dropped position immediately rather than waiting for
+      // the agent to confirm the real player actually moved there.
+      const current = get().media
+      if (!current) return
+      const position = Math.max(0, Math.min(current.duration, positionSeconds))
+      set({ media: { ...current, position }, mediaSampledAt: performance.now() })
+
+      if (get().preview) {
+        void import('@/transport/preview').then((m) => m.previewSeek(position, get().applyServerEvent))
+        return
+      }
+      agentSocket.send({ type: 'media.seek', positionSeconds: position })
     },
 
     clearConversation: () =>

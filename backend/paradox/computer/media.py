@@ -152,6 +152,7 @@ async def _read() -> dict[str, Any] | None:
             "next": bool(controls.is_next_enabled),
             "previous": bool(controls.is_previous_enabled),
             "stop": bool(controls.is_stop_enabled),
+            "seek": bool(controls.is_playback_position_enabled),
         },
     }
 
@@ -178,6 +179,25 @@ async def _control(action: str) -> bool:
         case "stop":
             return bool(await session.try_stop_async())
     raise ValueError(f"unknown media action: {action}")
+
+
+_TICKS_PER_SECOND = 10_000_000  # a WinRT TimeSpan/tick is 100ns
+
+
+async def seek(position_seconds: float) -> bool:
+    """Jump the current session to a position, in seconds. Returns whether
+    Windows accepted it — not every player can be scrubbed."""
+    if not AVAILABLE:
+        return False
+    return await _off_thread(_seek(position_seconds))
+
+
+async def _seek(position_seconds: float) -> bool:
+    session = await _session()
+    if session is None:
+        return False
+    ticks = round(max(0.0, position_seconds) * _TICKS_PER_SECOND)
+    return bool(await session.try_change_playback_position_async(ticks))
 
 
 def snapshot() -> dict[str, Any] | None:

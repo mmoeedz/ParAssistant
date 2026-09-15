@@ -173,6 +173,8 @@ class Session:
             await self._on_voice(kind, event)
         elif kind == "media.control":
             await self._on_media(event)
+        elif kind == "media.seek":
+            await self._on_media_seek(event)
         elif kind == "memory.forget":
             self._forget(event)
         elif kind == "memory.clear":
@@ -196,7 +198,23 @@ class Session:
         except Exception:  # noqa: BLE001
             log.debug("media control failed", exc_info=True)
             return
-        # Report the new state without waiting for the next poll.
+        await self._report_media_soon()
+
+    async def _on_media_seek(self, event: dict[str, Any]) -> None:
+        """Scrubbing the timeline in the UI — jump the real session there."""
+        position = event.get("positionSeconds")
+        if not isinstance(position, (int, float)):
+            log.warning("media.seek without a positionSeconds")
+            return
+        try:
+            await media.seek(float(position))
+        except Exception:  # noqa: BLE001
+            log.debug("media seek failed", exc_info=True)
+            return
+        await self._report_media_soon()
+
+    async def _report_media_soon(self) -> None:
+        """Report the new state without waiting for the next poll."""
         await asyncio.sleep(0.25)
         try:
             state = await media.now_playing()
