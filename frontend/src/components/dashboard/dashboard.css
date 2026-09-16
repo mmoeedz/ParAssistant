@@ -2,11 +2,10 @@
 
 .rings {
   display: grid;
-  /* Fixed, not 1fr: keeps each ring the same compact size it was when a
-     5th (VRAM) ring shared this row, instead of stretching to fill the
-     space that freed up — extra room just sits empty at the row's end. */
-  grid-template-columns: repeat(4, 64px);
-  justify-content: start;
+  /* Equal 1fr columns: the rings grow to fill however wide the panel
+     actually is (it varies with the workspace split) instead of sitting at
+     a small fixed size with dead space past them. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--sp-2);
   padding: var(--sp-1) 0 var(--sp-2);
 }
@@ -21,7 +20,7 @@
 
 .ring__svg {
   width: 100%;
-  max-width: 58px;
+  max-width: 84px;
   transform: rotate(-90deg);
 }
 
@@ -44,14 +43,16 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 58px;
+  /* Matches .ring__svg's own sizing (square, width-driven) instead of a
+     fixed height, so the percentage stays centred on the ring at any size. */
+  aspect-ratio: 1;
   display: grid;
   place-items: center;
   pointer-events: none;
 }
 
 .ring__pct {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -59,7 +60,7 @@
 
 .ring__name {
   font-family: var(--font-hud);
-  font-size: 11.5px;
+  font-size: 12px;
   letter-spacing: 0.08em;
   color: var(--text-dim);
 }
@@ -91,14 +92,12 @@
 
 /* Two columns, not four — at four-up, "CPU TEMP"/"GPU TEMP" and the delta
    badge have nowhere to go and the label truncates to a single letter.
-   Fixed width (matching .rings' own fixed 64px columns), not 1fr: lines
-   this row's total width up with the rings row above it instead of
-   stretching to fill the panel — still comfortably wider than the ~85px
-   four-column width that caused the truncation above. */
+   1fr, matching the rings row above: both stretch equally to fill however
+   wide the panel actually is, rather than sitting at a small fixed width
+   with dead space past them. */
 .mgrid {
   display: grid;
-  grid-template-columns: repeat(2, 136px);
-  justify-content: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-top: 10px;
   padding-top: 10px;
