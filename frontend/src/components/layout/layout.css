@@ -244,11 +244,17 @@
 /* Agent Network / Agent Town: a fixed 40/60 split, not a draggable one.
    Grid rather than flex-basis percentages so the 10px gap between them is
    accounted for automatically instead of pushing the total past 100%.
-   Each side keeps the floor the old draggable version enforced — 320px is
-   where Agent Network's fourth agent card starts clipping, 220px is Agent
-   Town's own floor — so 40/60 holds whenever there is room for it, and only
-   yields (scrolling the column, not crushing a panel) when there truly
-   isn't enough height for both at once. */
+   Each side keeps an explicit floor — 320px is where Agent Network's four
+   agent cards actually stop fitting (matches .net__body's own min-height:
+   282px, plus its header), 220px is a deliberate minimum for Agent Town
+   (whose floor art rescales to anything, so it has no natural one).
+   `minmax(auto, ...)` alone can't derive Agent Network's floor from its own
+   content instead: .panel is `overflow: hidden`, and a grid item's
+   automatic minimum size only comes from content when overflow is visible
+   — under hidden it resolves to 0, i.e. no floor, which is what shipped
+   here briefly and re-broke the fourth card at a 650px window. Pixel floors
+   it is; 40/60 holds whenever both fit, and the column scrolls rather than
+   crushing a panel when they truly don't. */
 .wcol--center[data-split='true'] {
   display: grid;
   grid-template-rows: minmax(320px, 40fr) minmax(220px, 60fr);
