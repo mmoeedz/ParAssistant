@@ -241,7 +241,7 @@
    accounted for automatically instead of pushing the total past 100%. */
 .wcol--center[data-split='true'] {
   display: grid;
-  grid-template-rows: 45fr 55fr;
+  grid-template-rows: 40fr 60fr;
 }
 
 /* Below this, the 20/55/25 split would squeeze the side columns under their
