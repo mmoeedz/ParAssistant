@@ -206,7 +206,9 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 372px minmax(0, 1fr) 452px;
+  /* 20/55/25, but never so narrow the left column wraps its own content —
+     four 64px usage rings plus padding need ~314px to sit on one row. */
+  grid-template-columns: minmax(330px, 20fr) minmax(0, 55fr) minmax(300px, 25fr);
   gap: var(--sp-3);
   padding: var(--sp-3);
   overflow: hidden;
@@ -253,27 +255,13 @@
   color: var(--accent);
 }
 
-@media (max-width: 1500px) {
+/* Below this, the 20/55/25 split would squeeze the side columns under their
+   own minimums (the left column's 2x2 rings/cards, the right column's
+   console) — so the columns stop shrinking there and the layout scrolls
+   horizontally instead of clipping. */
+@media (max-width: 1160px) {
   .workspace {
-    grid-template-columns: 330px minmax(0, 1fr) 380px;
-  }
-}
-
-@media (max-width: 1240px) {
-  .workspace {
-    grid-template-columns: minmax(0, 1fr) 380px;
-  }
-  .wcol--left {
-    display: none;
-  }
-}
-
-/* A smaller laptop panel/window — narrower still, but this is the floor:
-   below this a 2-column layout has nowhere left to give, so the right
-   column is trimmed a bit further rather than the layout breaking down. */
-@media (max-width: 1000px) {
-  .workspace {
-    grid-template-columns: minmax(0, 1fr) 320px;
+    overflow-x: auto;
   }
 }
 
