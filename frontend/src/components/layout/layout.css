@@ -206,9 +206,9 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  /* 20/55/25, but never so narrow the left column wraps its own content —
+  /* 20/50/30, but never so narrow the left column wraps its own content —
      four 64px usage rings plus padding need ~314px to sit on one row. */
-  grid-template-columns: minmax(330px, 20fr) minmax(0, 55fr) minmax(300px, 25fr);
+  grid-template-columns: minmax(330px, 20fr) minmax(0, 50fr) minmax(300px, 30fr);
   gap: var(--sp-3);
   padding: var(--sp-3);
   overflow: hidden;
