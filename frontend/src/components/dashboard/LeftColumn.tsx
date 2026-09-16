@@ -228,7 +228,7 @@ export function SystemOverview() {
           />
           <MetricCard
             value={stats?.vram ? String(Math.round(stats.vram.percent)) : '—'}
-            unit="VRAM %"
+            unit="%"
             history={vramHistory}
             deltaFormat="unit"
             deltaUnit="%"
@@ -241,7 +241,7 @@ export function SystemOverview() {
           />
           <MetricCard
             value={stats?.cpuTempC !== undefined ? stats.cpuTempC.toFixed(1) : '—'}
-            unit="CPU °c"
+            unit="°c"
             history={cpuTempHistory}
             deltaFormat="unit"
             deltaUnit="°"

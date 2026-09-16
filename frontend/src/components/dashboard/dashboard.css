@@ -111,6 +111,10 @@
   border-radius: var(--r-md);
   border: 1px solid var(--border);
   background: var(--surface-2);
+  /* Belt-and-braces: value width varies (a 3-digit reading, a longer unit)
+     and must never push the graph past the card's own edge into its
+     neighbour — whatever doesn't fit is clipped here, not left to escape. */
+  overflow: hidden;
 }
 
 /* Value on the left, its own small trend graph on the right — one row. */
@@ -143,13 +147,16 @@
 
 /* A compact graph beside the value, not a full-width strip — styled like
    the System Overview graph above it: a stroked line over its own closed,
-   low-opacity fill, in this card's own colour. */
+   low-opacity fill, in this card's own colour.
+   44px, not the 64px this started at: at the card's fixed 136px width, a
+   worst-case value+unit ("9999 ms") plus the gap leaves only ~44px before
+   the graph would force the row wider than the card and get clipped by
+   .mcard's overflow:hidden — this is sized to actually fit instead. */
 .mspark {
   display: block;
-  width: 64px;
+  width: 44px;
   height: 22px;
   flex: none;
-  overflow: visible;
 }
 
 .mspark__fill {
