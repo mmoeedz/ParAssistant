@@ -232,16 +232,26 @@
   overflow-x: hidden;
 }
 
+/* Not overflow:hidden here any more — see .wcol--center[data-split] below:
+   on a short window the two floors can outgrow the column, and clipping the
+   difference silently (the previous behaviour) cut the fourth agent card
+   off entirely instead of making the shortage visible. */
 .wcol--center {
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Agent Network / Agent Town: a fixed 40/60 split, not a draggable one.
    Grid rather than flex-basis percentages so the 10px gap between them is
-   accounted for automatically instead of pushing the total past 100%. */
+   accounted for automatically instead of pushing the total past 100%.
+   Each side keeps the floor the old draggable version enforced — 320px is
+   where Agent Network's fourth agent card starts clipping, 220px is Agent
+   Town's own floor — so 40/60 holds whenever there is room for it, and only
+   yields (scrolling the column, not crushing a panel) when there truly
+   isn't enough height for both at once. */
 .wcol--center[data-split='true'] {
   display: grid;
-  grid-template-rows: 40fr 60fr;
+  grid-template-rows: minmax(320px, 40fr) minmax(220px, 60fr);
 }
 
 /* Below this, the 20/55/25 split would squeeze the side columns under their
