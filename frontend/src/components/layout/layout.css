@@ -236,23 +236,12 @@
   overflow: hidden;
 }
 
-/* Drag handle between Agent Network and Agent Town — lets the split adapt
-   to whatever vertical room a given monitor actually has. */
-.vsplit-handle {
-  flex: none;
+/* Agent Network / Agent Town: a fixed 40/60 split, not a draggable one.
+   Grid rather than flex-basis percentages so the 10px gap between them is
+   accounted for automatically instead of pushing the total past 100%. */
+.wcol--center[data-split='true'] {
   display: grid;
-  place-items: center;
-  height: 14px;
-  margin: -4px 0;
-  color: var(--text-faint);
-  cursor: row-resize;
-  touch-action: none;
-  z-index: 1;
-}
-
-.vsplit-handle:hover,
-.vsplit-handle[data-dragging='true'] {
-  color: var(--accent);
+  grid-template-rows: 40fr 60fr;
 }
 
 /* Below this, the 20/55/25 split would squeeze the side columns under their
