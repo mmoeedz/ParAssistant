@@ -2,7 +2,7 @@
  * The Agent Town floor, drawn.
  *
  * This is the room from the reference design rebuilt as vector art, 790 units
- * wide and as tall as the panel gives it: the cabin row along the top wall
+ * wide and as tall as the panel gives it: the cubicle row along the top wall
  * is fixed, and the two rooms below stretch to fill, so the town always fills
  * its panel instead of letterboxing. Nobody is drawn into it — the only people
  * in the town are the live agents, so an empty desk means the agent that owns
@@ -10,8 +10,6 @@
  *
  * Palette is sampled from the reference.
  */
-
-import { AGENTS, CABIN_BOTTOM, CABIN_TOP, CABIN_W, CABIN_X, type AgentDef, type AgentId } from '@/types/agents'
 
 /**
  * Structure is neutral grey to match the app's greyish-black theme; only the
@@ -47,31 +45,8 @@ const C = {
   red: '#8c2f34',
 } as const
 
-/**
- * The cabin row, one per agent.
- *
- * Paired with the roster by the station the agent actually works at, so an
- * agent that moves takes its cabin with it rather than leaving an empty booth
- * behind and sitting somewhere else.
- */
-const CABINS = CABIN_X.map((x) => ({
-  x: x as number,
-  agent: AGENTS.find((a) => a.id !== 'paradox' && a.station.x === x),
-})).filter((c): c is { x: number; agent: AgentDef } => Boolean(c.agent))
-
-/** What each agent's monitor is showing — its own job, at a glance. */
-type Screen = 'browser' | 'files' | 'vision' | 'comms' | 'terminal' | 'voice' | 'memory'
-
-const SCREENS: Record<AgentId, Screen> = {
-  paradox: 'terminal',
-  orion: 'browser',
-  axel: 'files',
-  nova: 'vision',
-  luna: 'comms',
-  zeno: 'terminal',
-  aria: 'voice',
-  kai: 'memory',
-}
+/** Desks in the top-wall cubicle row. */
+const CUBICLES = [62, 175, 285, 390]
 
 /** The drawing's natural height; the rooms stretch from here. */
 export const FLOOR_BASE_H = 350
@@ -139,26 +114,45 @@ export function TownFloor({ height = FLOOR_BASE_H }: { height?: number }) {
               opacity="0.12" />
       ))}
 
-      {/* ------------------------------------------------------- cabin row -- */}
-      {CABINS.map(({ x, agent }) => (
-        <Cabin key={agent.id} x={x} agent={agent} />
+      {/* ---------------------------------------------------- top-wall row -- */}
+      {CUBICLES.map((cx) => (
+        <Cubicle key={cx} x={cx} />
       ))}
 
-      {/* hall display on the wall above the waiting corner */}
-      <rect x="706" y="2" width="62" height="38" rx="2" fill={C.screen} stroke={C.panel} />
-      <rect x="710" y="6" width="54" height="14" rx="1" fill={C.orange} opacity="0.5" />
-      <rect x="710" y="24" width="34" height="3" fill={C.edge} opacity="0.35" />
-      <rect x="710" y="30" width="44" height="3" fill={C.edge} opacity="0.22" />
+      {/* the desk flanked by plants */}
+      <Desk x={470} y={96} w={78} />
+      <Monitor x={442} y={62} w={26} h={18} />
+      <Plant x={424} y={104} s={1.1} />
+      <Plant x={516} y={104} s={1.1} />
+      <Chair x={470} y={112} />
 
-      {/* the waiting corner, beyond the end of the cabin row */}
-      <rect x="700" y="46" width="88" height="24" rx="2" fill={C.wall} />
-      {[706, 734, 762].map((x) => (
-        <rect key={x} x={x} y="50" width="22" height="16" rx="3" fill={C.wood} />
+      {/* the corner desk with its wall unit */}
+      <g strokeWidth="1.4">
+        <rect x="546" y="60" width="26" height="44" rx="2" fill={C.panel} />
+        <rect x="549" y="64" width="20" height="14" rx="1" fill={C.screen} />
+        <rect x="549" y="82" width="20" height="4" rx="1" fill={C.edge} opacity="0.25" />
+        <rect x="548" y="96" width="86" height="26" rx="3" fill={C.wood} />
+        <rect x="548" y="96" width="86" height="4" rx="2" fill={C.woodLit} />
+        <rect x="556" y="104" width="18" height="10" rx="1" fill={C.edge} opacity="0.5" />
+        <rect x="608" y="104" width="16" height="10" rx="1" fill={C.screen} />
+        <Chair x={590} y={128} />
+      </g>
+
+      {/* wall screen above it */}
+      <rect x="596" y="4" width="62" height="42" rx="2" fill={C.screen} stroke={C.panel} />
+      <rect x="600" y="8" width="54" height="16" rx="1" fill={C.orange} opacity="0.5" />
+      <rect x="600" y="28" width="34" height="3" fill={C.edge} opacity="0.35" />
+      <rect x="600" y="34" width="44" height="3" fill={C.edge} opacity="0.22" />
+
+      {/* the waiting corner */}
+      <rect x="676" y="18" width="106" height="26" rx="2" fill={C.wall} />
+      {[690, 722, 754].map((x) => (
+        <rect key={x} x={x} y="22" width="24" height="18" rx="3" fill={C.wood} />
       ))}
-      {[704, 732, 760].map((x) => (
+      {[688, 724, 760].map((x) => (
         <WoodChair key={x} x={x} y="98" />
       ))}
-      <rect x="712" y="118" width="64" height="12" rx="4" fill={C.chair} />
+      <rect x="700" y="118" width="64" height="12" rx="4" fill={C.chair} />
 
       {/* --------------------------------------------------------- left room -- */}
       {/* wall fittings */}
@@ -295,132 +289,53 @@ export function TownFloor({ height = FLOOR_BASE_H }: { height?: number }) {
 /* ----------------------------------------------------------------- parts -- */
 
 /**
- * One agent's cabin: a booth of grey panels around a dark interior, a back
- * counter with kit on it, the agent's own desk and monitor, a chair it
- * actually sits in, and a plant in the corner.
- *
- * The accent along the top and the glyph on the monitor are the agent's own,
- * so a glance at the row says whose desk is whose. They are static: the live
- * state belongs to the agent standing in it and to its name tag, which means
- * the floor never re-renders when an agent changes state.
+ * A workstation in the top row: a booth of grey panels around a dark interior,
+ * a back counter with kit on it, a monitor on the desk, and a chair pulled out.
  */
-function Cabin({ x, agent }: { x: number; agent: AgentDef }) {
-  const half = CABIN_W / 2
-  const h = CABIN_BOTTOM - CABIN_TOP
-  const tone = agent.color
-
+function Cubicle({ x }: { x: number }) {
   return (
     <g strokeWidth="1.4">
-      {/* booth walls */}
-      <rect x={x - half} y={CABIN_TOP} width={CABIN_W} height={h} rx="2" fill={C.boothIn} />
-      <rect x={x - half} y={CABIN_TOP} width={CABIN_W} height={h} rx="2" fill="none"
-            stroke={C.panel} strokeWidth="2" />
-      <rect x={x - half} y={CABIN_TOP} width="5" height={h} fill={C.panel} />
-      <rect x={x + half - 5} y={CABIN_TOP} width="5" height={h} fill={C.panel} />
-
-      {/* the agent's accent along the top of its own booth */}
-      <rect x={x - half} y={CABIN_TOP} width={CABIN_W} height="4" fill={tone} opacity="0.55" />
-      <rect x={x - 12} y={CABIN_TOP + 4} width="24" height="2" rx="1" fill={tone} opacity="0.8" />
+      {/* booth */}
+      <rect x={x - 50} y="15" width="100" height="79" rx="2" fill={C.boothIn} />
+      <rect x={x - 50} y="15" width="100" height="79" rx="2" fill="none" stroke={C.panel}
+            strokeWidth="2" />
+      <rect x={x - 50} y="15" width="5" height="79" fill={C.panel} />
+      <rect x={x + 45} y="15" width="5" height="79" fill={C.panel} />
+      <rect x={x - 50} y="15" width="100" height="4" fill={C.panelLit} opacity="0.55" />
 
       {/* back counter and the kit on it */}
-      <rect x={x - 41} y="22" width="82" height="20" rx="2" fill={C.counterDeep} />
-      <rect x={x - 41} y="22" width="82" height="2" fill={C.edge} opacity="0.22" />
-      <rect x={x - 36} y="26" width="15" height="12" rx="1" fill={C.glass} opacity="0.6" />
-      <rect x={x - 16} y="28" width="11" height="9" rx="1" fill={C.edge} opacity="0.45" />
-      <rect x={x + 1} y="27" width="13" height="11" rx="1" fill={tone} opacity="0.3" />
-      <rect x={x + 20} y="26" width="15" height="12" rx="1" fill={C.orange} opacity="0.35" />
+      <rect x={x - 44} y="24" width="88" height="20" rx="2" fill={C.counterDeep} />
+      <rect x={x - 44} y="24" width="88" height="2" fill={C.edge} opacity="0.22" />
+      <rect x={x - 39} y="28" width="17" height="12" rx="1" fill={C.glass} opacity="0.6" />
+      <rect x={x - 17} y="30" width="12" height="9" rx="1" fill={C.edge} opacity="0.45" />
+      <rect x={x + 2} y="29" width="14" height="11" rx="1" fill={C.leafLit} opacity="0.35" />
+      <rect x={x + 22} y="28" width="16" height="12" rx="1" fill={C.orange} opacity="0.4" />
 
-      {/* monitor, showing what this agent does */}
-      <rect x={x - 15} y="45" width="30" height="20" rx="2" fill={C.screen} stroke={C.panelLit}
-            strokeOpacity="0.5" />
-      <ScreenArt kind={SCREENS[agent.id]} x={x - 15} y={45} tone={tone} />
-      <rect x={x - 4} y="65" width="8" height="3" fill={C.panel} />
-
-      {/* desk and keyboard */}
-      <rect x={x - 41} y="68" width="82" height="20" rx="2" fill={C.counter} />
-      <rect x={x - 41} y="68" width="82" height="4" rx="2" fill={C.edge} opacity="0.28" />
-      <rect x={x - 15} y="76" width="30" height="8" rx="1" fill={C.panel} />
-      <rect x={x - 12} y="78" width="24" height="4" rx="1" fill={C.edge} opacity="0.3" />
-
-      {/* the chair it sits in, and a plant of its own */}
-      <Chair x={x} y={94} />
-      <Plant x={x + 34} y={100} s={0.75} />
+      {/* desk, monitor, chair */}
+      <Desk x={x} y={58} w={86} />
+      <Monitor x={x - 13} y={44} w={26} h={16} />
+      <Chair x={x} y={90} />
     </g>
   )
 }
 
-/** The contents of one agent's monitor — six shapes, no text to shrink away. */
-function ScreenArt({ kind, x, y, tone }: { kind: Screen; x: number; y: number; tone: string }) {
-  const cx = x + 15
-  switch (kind) {
-    case 'browser':
-      return (
-        <g>
-          <rect x={x + 3} y={y + 3} width="24" height="3" rx="1.5" fill={tone} opacity="0.5" />
-          <circle cx={cx} cy={y + 12} r="5" fill="none" stroke={tone} strokeOpacity="0.8"
-                  strokeWidth="1.2" />
-          <path d={`M${cx - 5} ${y + 12} h10 M${cx} ${y + 7} a5 5 0 0 1 0 10 a5 5 0 0 1 0 -10`}
-                fill="none" stroke={tone} strokeOpacity="0.55" strokeWidth="1" />
-        </g>
-      )
-    case 'files':
-      return (
-        <g fill={tone}>
-          {[4, 9, 14].map((dy) => (
-            <rect key={dy} x={x + 4} y={y + dy} width="22" height="3.5" rx="1" opacity="0.5" />
-          ))}
-          <rect x={x + 4} y={y + 4} width="8" height="3.5" rx="1" opacity="0.85" />
-        </g>
-      )
-    case 'vision':
-      return (
-        <g>
-          <ellipse cx={cx} cy={y + 10} rx="9" ry="5.5" fill="none" stroke={tone}
-                   strokeOpacity="0.8" strokeWidth="1.2" />
-          <circle cx={cx} cy={y + 10} r="2.6" fill={tone} opacity="0.9" />
-          <rect x={x + 5} y={y + 16} width="20" height="2" rx="1" fill={tone} opacity="0.35" />
-        </g>
-      )
-    case 'comms':
-      return (
-        <g fill={tone}>
-          <rect x={x + 4} y={y + 4} width="15" height="6" rx="3" opacity="0.75" />
-          <rect x={x + 11} y={y + 12} width="15" height="6" rx="3" opacity="0.45" />
-        </g>
-      )
-    case 'terminal':
-      return (
-        <g fill={tone}>
-          <rect x={x + 4} y={y + 4} width="5" height="2.5" rx="1" opacity="0.9" />
-          <rect x={x + 11} y={y + 4} width="13" height="2.5" rx="1" opacity="0.45" />
-          <rect x={x + 4} y={y + 9} width="18" height="2.5" rx="1" opacity="0.5" />
-          <rect x={x + 4} y={y + 14} width="10" height="2.5" rx="1" opacity="0.35" />
-          <rect x={x + 16} y={y + 14} width="4" height="2.5" rx="1" opacity="0.8" />
-        </g>
-      )
-    case 'voice':
-      return (
-        <g fill={tone}>
-          {[0, 1, 2, 3, 4, 5].map((i) => {
-            const tall = [5, 11, 7, 14, 8, 4][i]
-            return (
-              <rect key={i} x={x + 5 + i * 4} y={y + 10 - tall / 2} width="2.5" height={tall}
-                    rx="1.2" opacity={0.4 + (i % 3) * 0.2} />
-            )
-          })}
-        </g>
-      )
-    case 'memory':
-      return (
-        <g>
-          {[0, 1, 2, 3].map((i) => (
-            <rect key={i} x={x + 4 + i * 6} y={y + 4} width="4.5" height="12" rx="1" fill={tone}
-                  opacity={0.4 + i * 0.15} />
-          ))}
-          <rect x={x + 4} y={y + 17} width="22" height="2" rx="1" fill={tone} opacity="0.3" />
-        </g>
-      )
-  }
+function Desk({ x, y, w }: { x: number; y: number; w: number }) {
+  return (
+    <g strokeWidth="1.4">
+      <rect x={x - w / 2} y={y} width={w} height="22" rx="2" fill={C.counter} />
+      <rect x={x - w / 2} y={y} width={w} height="4" rx="2" fill={C.edge} opacity="0.28" />
+    </g>
+  )
+}
+
+function Monitor({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} rx="2" fill={C.screen} stroke={C.panelLit}
+            strokeOpacity="0.5" />
+      <rect x={x + 2} y={y + 2} width={w - 4} height={h - 6} rx="1" fill={C.glass} opacity="0.55" />
+    </g>
+  )
 }
 
 function Chair({ x, y, tone = C.chairLit }: { x: number; y: number; tone?: string }) {
