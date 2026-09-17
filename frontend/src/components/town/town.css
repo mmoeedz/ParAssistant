@@ -56,14 +56,20 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: #0d222c;
+  /* Shows either side of the room when the stage is wider than the floor may
+     be drawn — see useFloorBox. Matches the void the art itself is cut out of,
+     so the letterbox reads as the edge of the building rather than a gap. */
+  background: #070708;
 }
 
 /* The floor is drawn in SVG; the name tags are positioned over it in
-   percentages and sized in cqw, so they scale with the room. */
+   percentages and sized in cqw, so they scale with the room.
+   The width is set inline by useFloorBox; left/right: 0 plus auto margins
+   then centre whatever width it picked. */
 .town__room {
   position: absolute;
   inset: 0;
+  margin-inline: auto;
   container-type: size;
 }
 
@@ -122,6 +128,64 @@
 @keyframes seat-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.55; transform: scale(0.82); }
+}
+
+/* ---------------------------------------------------------- floor plan -- */
+
+/* The Map tab pins each station in TownMap to its real seat coordinates, in
+   the same percentage space the name tags use, so a pin lands exactly where
+   that agent stands when it is working. Sized in cqw like the tags, so the
+   plan stays readable at any panel size. */
+.tmark {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6cqw;
+  pointer-events: none;
+}
+
+.tmark[data-empty='true'] {
+  opacity: 0.5;
+}
+
+.tmark__pin {
+  width: 1.4cqw;
+  height: 1.4cqw;
+  border-radius: var(--r-full);
+  background: var(--tone);
+  box-shadow: 0 0 0 0.5cqw color-mix(in srgb, var(--tone) 20%, transparent),
+    0 0 1.4cqw var(--tone);
+}
+
+.tmark[data-live='true'] .tmark__pin {
+  animation: seat-pulse 1.5s var(--ease) infinite;
+}
+
+.tmark__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+  padding: 0.5cqw 1cqw;
+  border-radius: 0.8cqw;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(12, 12, 14, 0.9);
+  white-space: nowrap;
+}
+
+.tmark__label b {
+  font-size: 1.45cqw;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--tone);
+}
+
+.tmark__label em {
+  font-style: normal;
+  font-size: 1.2cqw;
+  color: #8e8e96;
 }
 
 /* ----------------------------------------------------------- character -- */

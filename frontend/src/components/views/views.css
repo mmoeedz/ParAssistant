@@ -1,3 +1,271 @@
+/* ----------------------------------------------------------- agents tab -- */
+
+/* The town gets whatever height is going; the activity strip under it is only
+   as tall as its cards need. Below the town's own floor the page scrolls
+   instead of crushing the room — a 40px-tall town would be useless. */
+.agview {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Below ~300px the town is a letterbox slit rather than a room, so that is
+   where the stage stops giving ground and the page scrolls instead. */
+.agview__stage {
+  flex: 1;
+  min-height: 300px;
+}
+
+.agview__head {
+  padding: var(--sp-3) var(--sp-4);
+  gap: var(--sp-3);
+}
+
+.agview__title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.agview__head .section-title {
+  flex: none;
+  font-size: 14px;
+}
+
+.agview__sub {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  letter-spacing: 0.02em;
+}
+
+.agview__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.agview__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--sp-4);
+}
+
+/* -------------------------------------------------- live activity strip -- */
+
+.agview__live {
+  flex: none;
+}
+
+/* 150px still holds a name and its status pill, and it is low enough that the
+   whole roster lands on one row from about 1200px up. Below that the count is
+   pinned so the rows stay even — auto-fit would give six columns and leave the
+   seventh agent sitting on its own. */
+.agview__strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+}
+
+@media (max-width: 1180px) {
+  .agview__strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .agview__strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.lacard {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: var(--sp-3);
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-left: 2px solid color-mix(in srgb, var(--tone) 45%, transparent);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  transition: border-color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+
+.lacard[data-live='true'] {
+  border-left-color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 7%, var(--surface-2));
+}
+
+.lacard__top {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.lacard__dotwrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 10px;
+  height: 10px;
+  flex: none;
+}
+
+.lacard__pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-full);
+  background: var(--tone);
+  opacity: 0;
+}
+
+/* Only a live agent pulses: an idle card is meant to look idle. */
+.lacard__pulse[data-live='true'] {
+  animation: lacard-pulse 1.8s var(--ease) infinite;
+}
+
+@keyframes lacard-pulse {
+  0% { transform: scale(0.4); opacity: 0.5; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.lacard__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--r-full);
+  background: var(--tone);
+  box-shadow: 0 0 6px var(--tone);
+}
+
+.lacard__name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lacard__state {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--hairline);
+  background: var(--surface-3);
+  font-family: var(--font-hud);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.lacard__state[data-live='true'] {
+  color: var(--tone);
+  border-color: color-mix(in srgb, var(--tone) 40%, transparent);
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
+}
+
+.lacard__what {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  line-height: 1.45;
+  /* Two lines at most: a long step label would otherwise stretch its whole
+     row. One-line cards do not need padding out to match — grid stretches
+     every card in a row to the tallest one anyway. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Pushed to the bottom so every bar in a row lines up, whether the activity
+   line above it ran to one line or two. */
+.lacard__meterline {
+  margin-top: auto;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+
+.lacard__note {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-hud);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lacard__value {
+  flex: none;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.lacard__bar {
+  display: block;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+/* No live task with a step of this agent's in it = nothing to fill, and the
+   track says so by sitting flat rather than showing a made-up figure. */
+.lacard__bar[data-idle='true'] {
+  opacity: 0.6;
+}
+
+.lacard__bar b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tone);
+  transition: width var(--med) var(--ease);
+}
+
+/* A step of this agent's is in flight: the bar sits at the last finished step
+   and shimmers, rather than creeping forward on a timer that knows nothing. */
+.lacard__bar b[data-running='true'] {
+  /* Before its first step lands the fill is 0% wide; a sliver keeps the
+     shimmer visible without overstating the figure printed beside it. */
+  min-width: 6px;
+  box-shadow: 0 0 8px var(--tone);
+  animation: lacard-work 1.4s var(--ease) infinite;
+}
+
+@keyframes lacard-work {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lacard__pulse,
+  .lacard__bar b {
+    animation: none !important;
+  }
+}
+
 /* ---------------------------------------------------------- agent cards -- */
 
 .cards {

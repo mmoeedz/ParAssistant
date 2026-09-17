@@ -67,7 +67,7 @@ export function Toggle({
 export interface SegmentedOption<T extends string> {
   value: T
   label: string
-  tone?: 'good' | 'danger'
+  tone?: 'accent' | 'good' | 'danger'
   disabled?: boolean
   title?: string
 }
