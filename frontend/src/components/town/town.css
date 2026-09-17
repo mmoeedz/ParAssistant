@@ -179,11 +179,13 @@
 
 /* Nothing snaps back to attention. When a gait or a pose stops, the limb eases
    to its rest position over this instead of cutting on the frame the
-   animation is removed. */
+   animation is removed — the last step settles instead of freezing mid-stride
+   when an agent arrives and sits. */
 .ch__leg,
 .ch__arm,
-.ch__head {
-  transition: transform 200ms var(--ease);
+.ch__head,
+.ch__facing {
+  transition: transform 240ms var(--ease);
 }
 
 .ch[data-state='standby'] {
@@ -200,43 +202,107 @@
   100% { transform: none; }
 }
 
+/* The character mirrors to face the direction it is actually travelling in,
+   set from TownStage's own tracking of which way x last moved — a real turn
+   cue rather than the sprite always facing the same way regardless of which
+   direction it walks. Its own transition (above) eases the flip instead of
+   snapping, which — going through a near-zero width at the midpoint — reads
+   as the body turning rather than an instant mirror-swap. */
+.ch__facing {
+  transform-origin: center;
+}
+
 /* ---- the gait ----------------------------------------------------------
-   Contralateral, as people walk: left leg forward with the right arm, right
-   leg forward with the left. Legs swing wider than arms, and the body rises
-   on each step. All four limbs share one 420ms period so they stay in step. */
+   Every part below reads its cadence from --step-ms, which TownStage.tsx
+   computes fresh for each leg from that leg's own real speed (distance
+   actually travelled, divided by how long it took) rather than a fixed
+   period. A long fast crossing gets a brisk cadence; a short slow hop gets a
+   slow one — so the feet never appear to move faster or slower than the body
+   they are supposedly carrying, which was the original complaint (a
+   constant 420ms tempo regardless of how far or fast the body was actually
+   gliding is exactly what read as sliding). --phase-ms staggers agents
+   walking at the same time so a crowd doesn't move in lockstep.
+
+   Each leg's keyframe is a stance/swing split rather than a symmetric wag:
+   roughly the first half of its cycle it is planted and sweeping back under
+   the body (bearing weight, foot down — "the planted foot stays stable"),
+   then it lifts (translateY + a slight scaleY foreshortening, the closest a
+   single rigid rect can come to a knee bend) and swings forward quickly to
+   plant again. The right leg runs the identical keyframe, just delayed by
+   half a period — real contralateral motion without a second, hand-mirrored
+   keyframe to keep in sync with the first. Arms use the same trick: the
+   right arm shares the left leg's exact delay (left leg forward → right arm
+   forward, right leg forward → left arm forward), just a shallower angle and
+   no lift, which is what keeps them reading as attached to the shoulders
+   instead of swinging on a clock of their own.
+
+   The body's own bounce, lean and slight torso rotation run at double that
+   frequency — once per footfall rather than once per full stride — using
+   animation-direction: alternate so successive footfalls lean the weight to
+   opposite sides instead of the same one every time. */
+
+.ch[data-walking='true'] .ch__leg--l {
+  animation: gait-leg var(--step-ms, 680ms) linear infinite;
+  animation-delay: var(--phase-ms, 0ms);
+}
+
+.ch[data-walking='true'] .ch__leg--r {
+  animation: gait-leg var(--step-ms, 680ms) linear infinite;
+  animation-delay: calc(var(--phase-ms, 0ms) + var(--step-ms, 680ms) / 2);
+}
+
+.ch[data-walking='true'] .ch__arm--r {
+  animation: gait-arm var(--step-ms, 680ms) linear infinite;
+  animation-delay: var(--phase-ms, 0ms);
+}
+
+.ch[data-walking='true'] .ch__arm--l {
+  animation: gait-arm var(--step-ms, 680ms) linear infinite;
+  animation-delay: calc(var(--phase-ms, 0ms) + var(--step-ms, 680ms) / 2);
+}
 
 .ch[data-walking='true'] .ch__body {
-  animation: walk-bob 420ms linear infinite;
+  animation: gait-body calc(var(--step-ms, 680ms) / 2) ease-in-out infinite alternate;
+  animation-delay: var(--phase-ms, 0ms);
 }
 
-@keyframes walk-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-1.6px); }
+.ch[data-walking='true'] .ch__head {
+  animation: gait-head calc(var(--step-ms, 680ms) / 2) ease-in-out infinite alternate;
+  animation-delay: var(--phase-ms, 0ms);
 }
 
-.ch[data-walking='true'] .ch__leg--l { animation: step-a 420ms linear infinite; }
-.ch[data-walking='true'] .ch__leg--r { animation: step-b 420ms linear infinite; }
-.ch[data-walking='true'] .ch__arm--r { animation: swing-a 420ms linear infinite; }
-.ch[data-walking='true'] .ch__arm--l { animation: swing-b 420ms linear infinite; }
-
-@keyframes step-a {
-  0%, 100% { transform: rotate(15deg); }
-  50% { transform: rotate(-15deg); }
+@keyframes gait-leg {
+  0%   { transform: rotate(18deg); }
+  55%  { transform: rotate(-16deg); }
+  70%  { transform: rotate(-20deg) translateY(-1.6px) scaleY(0.94); }
+  90%  { transform: rotate(8deg) translateY(-1.4px) scaleY(0.96); }
+  100% { transform: rotate(18deg); }
 }
 
-@keyframes step-b {
-  0%, 100% { transform: rotate(-15deg); }
-  50% { transform: rotate(15deg); }
+@keyframes gait-arm {
+  0%   { transform: rotate(13deg); }
+  55%  { transform: rotate(-11deg); }
+  70%  { transform: rotate(-14deg); }
+  90%  { transform: rotate(6deg); }
+  100% { transform: rotate(13deg); }
 }
 
-@keyframes swing-a {
-  0%, 100% { transform: rotate(13deg); }
-  50% { transform: rotate(-13deg); }
+/* One footfall's worth of weight shift: a lean to one side, a small rise
+   through the middle, ending leaning the other way. animation-direction:
+   alternate plays this forward on one footfall and in reverse on the next,
+   so the lean genuinely swaps sides every step instead of resetting. */
+@keyframes gait-body {
+  0%   { transform: translate(-0.5px, 0) rotate(-0.9deg); }
+  50%  { transform: translate(0, -1.3px) rotate(0deg); }
+  100% { transform: translate(0.5px, 0) rotate(0.9deg); }
 }
 
-@keyframes swing-b {
-  0%, 100% { transform: rotate(-13deg); }
-  50% { transform: rotate(13deg); }
+/* The head stays steadier than the torso under it — a small counter-lean,
+   not a still statue. */
+@keyframes gait-head {
+  0%   { transform: rotate(0.4deg); }
+  50%  { transform: rotate(0deg); }
+  100% { transform: rotate(-0.4deg); }
 }
 
 /* ---- at the desk -------------------------------------------------------
@@ -429,6 +495,7 @@
   .ch__leg,
   .ch__arm,
   .ch__head,
+  .ch__facing,
   .ch__z,
   .tcore__ring,
   .ws__screen {

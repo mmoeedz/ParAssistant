@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from 'react'
-import { useSession } from '@/store/session'
+import { useSession, WALK_UNITS_PER_MS } from '@/store/session'
 import { AGENTS, type AgentDef, type AgentRuntime } from '@/types/agents'
 import { FLOOR_BASE_H, TownFloor } from './TownFloor'
 import './town.css'
@@ -152,12 +152,85 @@ const TROUSERS: Record<string, string> = {
 const SCALE = 1.15
 
 /**
+ * The nominal full stride (both feet down once each) at the walk's own
+ * nominal speed — WALK_UNITS_PER_MS, the same number the store's state
+ * machine uses to turn a distance into a leg's travel time. Scaled by that
+ * same ratio below, so a leg that is covering ground faster than nominal
+ * (because its distance was long enough to hit the store's duration cap)
+ * gets a brisker cadence, and one covering ground slower than nominal (a
+ * short hop, clamped up to the minimum duration) gets a more relaxed one.
+ */
+const NOMINAL_STEP_MS = 680
+const MIN_STEP_MS = 420
+const MAX_STEP_MS = 1000
+
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, v))
+}
+
+/**
+ * A small, deterministic offset per agent id, used as an animation-delay so
+ * agents walking at the same time don't all land their footfalls on the same
+ * beat — a crowd, not one puppet copied seven times.
+ */
+function phaseOffset(id: string): number {
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
+  return h % 260
+}
+
+/**
+ * Derives this agent's actual walking cadence and facing from its real
+ * movement, instead of a fixed animation period that runs the same whether
+ * the body is gliding the width of the floor or hopping half a step.
+ *
+ * `runtime.x/y` is a target the store's CSS transition (--move-ms, on `.ch`
+ * itself) carries the character to — there is no independent "current
+ * position" to read a velocity from. What IS knowable is each leg's own true
+ * average speed: how far this target is from the last one, divided by how
+ * long `moveMs` gives it to get there. That ratio against the nominal walk
+ * speed is what scales the step period — a leg going faster than nominal
+ * (a long corridor run, capped at the state machine's max duration) gets a
+ * brisker cadence; a leg going slower (a short hop, floored at the minimum
+ * duration) gets a slower one. Feet never appear to move at a rate
+ * unrelated to how fast the body is actually covering ground.
+ *
+ * Uses the React-documented pattern of adjusting state during render when a
+ * derived value (here, the previous target) has changed — see "Storing
+ * information from previous renders" — rather than an effect, so the new
+ * cadence is in place for the very frame the walk starts instead of one
+ * frame behind it.
+ */
+function useGait(runtime: AgentRuntime): { stepMs: number; facing: 1 | -1 } {
+  const [prev, setPrev] = useState({ x: runtime.x, y: runtime.y })
+  const [stepMs, setStepMs] = useState(NOMINAL_STEP_MS)
+  const [facing, setFacing] = useState<1 | -1>(1)
+
+  const dx = runtime.x - prev.x
+  const dy = runtime.y - prev.y
+  const dist = Math.hypot(dx, dy)
+
+  if (dist > 0.5 && runtime.moveMs > 0) {
+    const speed = dist / runtime.moveMs
+    setStepMs(clamp(Math.round(NOMINAL_STEP_MS * (WALK_UNITS_PER_MS / speed)), MIN_STEP_MS, MAX_STEP_MS))
+    // Only a horizontal move says anything about which way to face — the
+    // corridor's vertical legs (onto it, and off it into a station) carry no
+    // left/right information, so facing only updates on the along-corridor leg.
+    if (Math.abs(dx) > 0.5) setFacing(dx > 0 ? 1 : -1)
+    setPrev({ x: runtime.x, y: runtime.y })
+  }
+
+  return { stepMs, facing }
+}
+
+/**
  * One agent, drawn as a person.
  *
  * The limbs are real groups rather than decoration: each leg carries its own
  * shoe and pivots at the hip, each arm carries its own hand and pivots at the
  * shoulder, and the head is separate again. That is what lets town.css run an
- * actual gait — contralateral arm and leg, a bounce on top — and pose the
+ * actual gait — contralateral arm and leg, a stance/swing timing rather than
+ * a symmetric wag, a body that leans and bounces on the beat — and pose the
  * same body sitting at a desk and typing, instead of sliding a fixed sprite
  * across the floor.
  */
@@ -167,6 +240,7 @@ function Character({ def, runtime }: { def: AgentDef; runtime: AgentRuntime }) {
   const asleep = runtime.state === 'standby'
   const skin = SKIN[def.id] ?? '#e8c9a8'
   const trousers = TROUSERS[def.id] ?? '#212f38'
+  const { stepMs, facing } = useGait(runtime)
 
   return (
     <g
@@ -178,46 +252,53 @@ function Character({ def, runtime }: { def: AgentDef; runtime: AgentRuntime }) {
         transform: `translate(${runtime.x}px, ${runtime.y}px) scale(${SCALE})`,
         color: def.color,
         ['--move-ms' as string]: `${runtime.moveMs}ms`,
+        ['--step-ms' as string]: `${stepMs}ms`,
+        ['--phase-ms' as string]: `${phaseOffset(def.id)}ms`,
       }}
     >
       <ellipse cy="1" rx="13" ry="3.8" fill={def.color} className="ch__shadow" />
 
-      <g className="ch__body">
-        <g className="ch__legs">
-          {/* Each leg takes its foot with it — the shoes used to be laid on
-              separately, which left them standing still while the legs moved. */}
-          <g className="ch__leg ch__leg--l">
-            <rect x="-6" y="-13" width="4.5" height="13" rx="1.5" fill={trousers} />
-            <rect x="-6.8" y="-2.6" width="6" height="3" rx="1.2" fill="#151f26" />
+      {/* Everything but the shadow mirrors to face the way the character is
+          actually travelling — see town.css for why a mirror-flip reads as a
+          turn rather than an instant snap. */}
+      <g className="ch__facing" style={{ transform: `scaleX(${facing})` }}>
+        <g className="ch__body">
+          <g className="ch__legs">
+            {/* Each leg takes its foot with it — the shoes used to be laid on
+                separately, which left them standing still while the legs moved. */}
+            <g className="ch__leg ch__leg--l">
+              <rect x="-6" y="-13" width="4.5" height="13" rx="1.5" fill={trousers} />
+              <rect x="-6.8" y="-2.6" width="6" height="3" rx="1.2" fill="#151f26" />
+            </g>
+            <g className="ch__leg ch__leg--r">
+              <rect x="1.5" y="-13" width="4.5" height="13" rx="1.5" fill={trousers} />
+              <rect x="0.8" y="-2.6" width="6" height="3" rx="1.2" fill="#151f26" />
+            </g>
           </g>
-          <g className="ch__leg ch__leg--r">
-            <rect x="1.5" y="-13" width="4.5" height="13" rx="1.5" fill={trousers} />
-            <rect x="0.8" y="-2.6" width="6" height="3" rx="1.2" fill="#151f26" />
+
+          {/* torso, in the agent's colour */}
+          <rect x="-8.5" y="-28" width="17" height="17" rx="3.5" fill={def.color} />
+          <rect x="-8.5" y="-28" width="17" height="5" rx="3" fill="#fff" opacity="0.16" />
+          <rect x="-8.5" y="-14.5" width="17" height="2.6" fill="#000" opacity="0.22" />
+          <rect x="-2" y="-28" width="4" height="6" rx="1.4" fill="#fff" opacity="0.2" />
+
+          <g className="ch__arm ch__arm--l">
+            <rect x="-11.5" y="-26" width="3.5" height="12" rx="1.75" fill={def.color}
+                  opacity="0.8" />
+            <circle cx="-9.75" cy="-13.5" r="1.9" fill={skin} />
           </g>
-        </g>
+          <g className="ch__arm ch__arm--r">
+            <rect x="8" y="-26" width="3.5" height="12" rx="1.75" fill={def.color} opacity="0.8" />
+            <circle cx="9.75" cy="-13.5" r="1.9" fill={skin} />
+          </g>
 
-        {/* torso, in the agent's colour */}
-        <rect x="-8.5" y="-28" width="17" height="17" rx="3.5" fill={def.color} />
-        <rect x="-8.5" y="-28" width="17" height="5" rx="3" fill="#fff" opacity="0.16" />
-        <rect x="-8.5" y="-14.5" width="17" height="2.6" fill="#000" opacity="0.22" />
-        <rect x="-2" y="-28" width="4" height="6" rx="1.4" fill="#fff" opacity="0.2" />
-
-        <g className="ch__arm ch__arm--l">
-          <rect x="-11.5" y="-26" width="3.5" height="12" rx="1.75" fill={def.color}
-                opacity="0.8" />
-          <circle cx="-9.75" cy="-13.5" r="1.9" fill={skin} />
-        </g>
-        <g className="ch__arm ch__arm--r">
-          <rect x="8" y="-26" width="3.5" height="12" rx="1.75" fill={def.color} opacity="0.8" />
-          <circle cx="9.75" cy="-13.5" r="1.9" fill={skin} />
-        </g>
-
-        <g className="ch__head">
-          <rect x="-6.5" y="-42" width="13" height="13.5" rx="4" fill={skin} />
-          {/* hair, distinct per agent */}
-          <path d={HAIR[def.id] ?? HAIR.default} fill={HAIR_COLOR[def.id] ?? '#2b2118'} />
-          <rect x="-3.4" y="-35" width="1.9" height="2.4" rx="0.9" fill="#22303a" />
-          <rect x="1.5" y="-35" width="1.9" height="2.4" rx="0.9" fill="#22303a" />
+          <g className="ch__head">
+            <rect x="-6.5" y="-42" width="13" height="13.5" rx="4" fill={skin} />
+            {/* hair, distinct per agent */}
+            <path d={HAIR[def.id] ?? HAIR.default} fill={HAIR_COLOR[def.id] ?? '#2b2118'} />
+            <rect x="-3.4" y="-35" width="1.9" height="2.4" rx="0.9" fill="#22303a" />
+            <rect x="1.5" y="-35" width="1.9" height="2.4" rx="0.9" fill="#22303a" />
+          </g>
         </g>
       </g>
 

@@ -63,10 +63,16 @@ export const WALK_MS = 900
  * A leg's duration scales with how far it actually travels, so a short hop
  * onto the corridor doesn't take as long as crossing the whole floor on it —
  * both play at roughly the same walking speed instead of the same duration.
+ *
+ * The speed itself is a relaxed office pace rather than a dash — slow enough
+ * that the walk cycle in town.css (keyed off this same number, see
+ * `WALK_UNITS_PER_MS` below) reads as actual steps rather than a blur.
+ * Exported so the character's step cadence is derived from the same nominal
+ * speed the state machine uses, instead of a second, independent guess.
  */
-const WALK_UNITS_PER_MS = 0.45
-const MIN_LEG_MS = 220
-const MAX_LEG_MS = 1200
+export const WALK_UNITS_PER_MS = 0.3
+const MIN_LEG_MS = 260
+const MAX_LEG_MS = 1500
 
 function legDuration(dx: number, dy: number): number {
   const dist = Math.hypot(dx, dy)
