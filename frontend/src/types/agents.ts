@@ -46,8 +46,8 @@ export interface AgentDef {
 
 /**
  * Positions are in the Agent Town floor's own coordinates (790 x 350 — the
- * artwork's pixels). A station is where an agent stands to work: the walkway
- * directly under its desk, so the character lines up with its badge.
+ * artwork's pixels). A station is the seat inside an agent's own cabin: where
+ * the character ends up sitting, at its desk, in front of its monitor.
  */
 /**
  * The corridor is the one obstruction-free path across the whole floor — a
@@ -57,18 +57,42 @@ export interface AgentDef {
  */
 export const CORRIDOR_Y = 142
 
+/**
+ * The cabin row along the top wall.
+ *
+ * Seven cabins, one per agent, sized so the row spans x = 11-697 and leaves
+ * the waiting corner beyond it intact. TownFloor draws them from these
+ * numbers and the walk state machine aims at them, so the art and the
+ * navigation cannot drift apart.
+ */
+export const CABIN_W = 98
+export const CABIN_TOP = 15
+export const CABIN_BOTTOM = 118
+
+/** Centres of the seven cabins, left to right. */
+export const CABIN_X = [60, 158, 256, 354, 452, 550, 648] as const
+
+/** Where a seated agent's feet are — level with the chair, at its own desk. */
+const SEAT_Y = 102
+
+/**
+ * Where an agent stands just inside its cabin, before it sits and after it
+ * stands. The one point a walk may leave the corridor for.
+ */
+export const CABIN_ENTRY_Y = 126
+
 /** Fallback transition duration before any walk has set a real one. */
 export const DEFAULT_MOVE_MS = 900
 
 export const STATIONS: Record<string, Station> = {
   core: { id: 'core', label: 'Paradox Core', x: 395, y: 200 },
-  browser: { id: 'browser', label: 'Browser Station', x: 62, y: 138 },
-  files: { id: 'files', label: 'File Room', x: 175, y: 138 },
-  vision: { id: 'vision', label: 'Vision Lab', x: 282, y: 138 },
-  comms: { id: 'comms', label: 'Comms Station', x: 378, y: 138 },
-  computer: { id: 'computer', label: 'Computer Station', x: 464, y: 138 },
-  voice: { id: 'voice', label: 'Voice Booth', x: 569, y: 138 },
-  research: { id: 'research', label: 'Research Desk', x: 600, y: 232 },
+  browser: { id: 'browser', label: 'Browser Cabin', x: CABIN_X[0], y: SEAT_Y },
+  files: { id: 'files', label: 'File Cabin', x: CABIN_X[1], y: SEAT_Y },
+  vision: { id: 'vision', label: 'Vision Cabin', x: CABIN_X[2], y: SEAT_Y },
+  comms: { id: 'comms', label: 'Comms Cabin', x: CABIN_X[3], y: SEAT_Y },
+  computer: { id: 'computer', label: 'Computer Cabin', x: CABIN_X[4], y: SEAT_Y },
+  voice: { id: 'voice', label: 'Voice Cabin', x: CABIN_X[5], y: SEAT_Y },
+  research: { id: 'research', label: 'Research Cabin', x: CABIN_X[6], y: SEAT_Y },
   server: { id: 'server', label: 'Server Room', x: 700, y: 232 },
 }
 
