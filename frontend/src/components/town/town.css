@@ -207,9 +207,18 @@
    cue rather than the sprite always facing the same way regardless of which
    direction it walks. Its own transition (above) eases the flip instead of
    snapping, which — going through a near-zero width at the midpoint — reads
-   as the body turning rather than an instant mirror-swap. */
+   as the body turning rather than an instant mirror-swap.
+
+   transform-origin here MUST stay 0 0, not "center": for an SVG element
+   without `transform-box: fill-box`, "center" resolves against the whole
+   <svg> viewBox, not this group's own bounding box. That bug shipped
+   briefly — it mirrored every agent that ever faces left (home to the right
+   of its station: Zeno, Orion, Aria, Kai) around the middle of the FLOOR
+   instead of around itself, which is why they appeared to vanish mid-walk
+   and never sat back down in the right place. 0 0 is this group's own local
+   origin, which is already the character's centreline — no offset needed. */
 .ch__facing {
-  transform-origin: center;
+  transform-origin: 0 0;
 }
 
 /* ---- the gait ----------------------------------------------------------

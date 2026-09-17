@@ -282,13 +282,15 @@ function Character({ def, runtime }: { def: AgentDef; runtime: AgentRuntime }) {
           <rect x="-8.5" y="-14.5" width="17" height="2.6" fill="#000" opacity="0.22" />
           <rect x="-2" y="-28" width="4" height="6" rx="1.4" fill="#fff" opacity="0.2" />
 
+          {/* Arms are the agent's own colour at full strength now, not a
+              faded 80% of it — the torso, arms and cabin accent should all
+              read as the same solid colour, not three shades of it. */}
           <g className="ch__arm ch__arm--l">
-            <rect x="-11.5" y="-26" width="3.5" height="12" rx="1.75" fill={def.color}
-                  opacity="0.8" />
+            <rect x="-11.5" y="-26" width="3.5" height="12" rx="1.75" fill={def.color} />
             <circle cx="-9.75" cy="-13.5" r="1.9" fill={skin} />
           </g>
           <g className="ch__arm ch__arm--r">
-            <rect x="8" y="-26" width="3.5" height="12" rx="1.75" fill={def.color} opacity="0.8" />
+            <rect x="8" y="-26" width="3.5" height="12" rx="1.75" fill={def.color} />
             <circle cx="9.75" cy="-13.5" r="1.9" fill={skin} />
           </g>
 
