@@ -180,13 +180,36 @@ const HAIR: Record<string, string> = {
   kai: 'M-7.5 -38.5 q0 -5 7 -5 q7 0 7 5 l0 1 l-14 0 z M6.5 -38.5 l4 1 l0 1.5 l-4 -0.5 z',
 }
 
+/** Trousers, so the agents are not seven people in identical dark jeans. */
+const TROUSERS: Record<string, string> = {
+  orion: '#25303c',
+  zeno: '#3a2f26',
+  luna: '#243528',
+  nova: '#2b2f36',
+  axel: '#2e2838',
+  aria: '#223440',
+  kai: '#332f22',
+}
+
 /** Matched to the people painted into the floor, which are a little taller. */
 const SCALE = 1.15
 
+/**
+ * One agent, drawn as a person.
+ *
+ * The limbs are real groups rather than decoration: each leg carries its own
+ * shoe and pivots at the hip, each arm carries its own hand and pivots at the
+ * shoulder, and the head is separate again. That is what lets town.css run an
+ * actual gait — contralateral arm and leg, a bounce on top — and pose the
+ * same body sitting at a desk and typing, instead of sliding a fixed sprite
+ * across the floor.
+ */
 function Character({ def, runtime }: { def: AgentDef; runtime: AgentRuntime }) {
   const seated = runtime.atStation && WORKING.has(runtime.state)
   const walking = runtime.state === 'walking' || runtime.state === 'returning'
   const asleep = runtime.state === 'standby'
+  const skin = SKIN[def.id] ?? '#e8c9a8'
+  const trousers = TROUSERS[def.id] ?? '#212f38'
 
   return (
     <g
@@ -202,33 +225,43 @@ function Character({ def, runtime }: { def: AgentDef; runtime: AgentRuntime }) {
     >
       <ellipse cy="1" rx="13" ry="3.8" fill={def.color} className="ch__shadow" />
 
-      <g className="ch__bob">
+      <g className="ch__body">
         <g className="ch__legs">
-          <rect className="ch__leg ch__leg--l" x="-6" y="-13" width="4.5" height="13" rx="1.5"
-                fill="#212f38" />
-          <rect className="ch__leg ch__leg--r" x="1.5" y="-13" width="4.5" height="13" rx="1.5"
-                fill="#212f38" />
+          {/* Each leg takes its foot with it — the shoes used to be laid on
+              separately, which left them standing still while the legs moved. */}
+          <g className="ch__leg ch__leg--l">
+            <rect x="-6" y="-13" width="4.5" height="13" rx="1.5" fill={trousers} />
+            <rect x="-6.8" y="-2.6" width="6" height="3" rx="1.2" fill="#151f26" />
+          </g>
+          <g className="ch__leg ch__leg--r">
+            <rect x="1.5" y="-13" width="4.5" height="13" rx="1.5" fill={trousers} />
+            <rect x="0.8" y="-2.6" width="6" height="3" rx="1.2" fill="#151f26" />
+          </g>
         </g>
-        {/* shoes */}
-        <rect x="-6.5" y="-2" width="5.5" height="2.5" rx="1" fill="#151f26" />
-        <rect x="1" y="-2" width="5.5" height="2.5" rx="1" fill="#151f26" />
 
         {/* torso, in the agent's colour */}
         <rect x="-8.5" y="-28" width="17" height="17" rx="3.5" fill={def.color} />
         <rect x="-8.5" y="-28" width="17" height="5" rx="3" fill="#fff" opacity="0.16" />
-        {/* arms */}
-        <rect x="-11.5" y="-26" width="3.5" height="12" rx="1.75" fill={def.color} opacity="0.8" />
-        <rect x="8" y="-26" width="3.5" height="12" rx="1.75" fill={def.color} opacity="0.8" />
-        {/* hands */}
-        <circle cx="-9.8" cy="-13.5" r="1.9" fill={SKIN[def.id] ?? '#e8c9a8'} />
-        <circle cx="9.8" cy="-13.5" r="1.9" fill={SKIN[def.id] ?? '#e8c9a8'} />
+        <rect x="-8.5" y="-14.5" width="17" height="2.6" fill="#000" opacity="0.22" />
+        <rect x="-2" y="-28" width="4" height="6" rx="1.4" fill="#fff" opacity="0.2" />
 
-        {/* head */}
-        <rect x="-6.5" y="-42" width="13" height="13.5" rx="4" fill={SKIN[def.id] ?? '#e8c9a8'} />
-        {/* hair, distinct per agent */}
-        <path d={HAIR[def.id] ?? HAIR.default} fill={HAIR_COLOR[def.id] ?? '#2b2118'} />
-        <rect x="-3.4" y="-35" width="1.9" height="2.4" rx="0.9" fill="#22303a" />
-        <rect x="1.5" y="-35" width="1.9" height="2.4" rx="0.9" fill="#22303a" />
+        <g className="ch__arm ch__arm--l">
+          <rect x="-11.5" y="-26" width="3.5" height="12" rx="1.75" fill={def.color}
+                opacity="0.8" />
+          <circle cx="-9.75" cy="-13.5" r="1.9" fill={skin} />
+        </g>
+        <g className="ch__arm ch__arm--r">
+          <rect x="8" y="-26" width="3.5" height="12" rx="1.75" fill={def.color} opacity="0.8" />
+          <circle cx="9.75" cy="-13.5" r="1.9" fill={skin} />
+        </g>
+
+        <g className="ch__head">
+          <rect x="-6.5" y="-42" width="13" height="13.5" rx="4" fill={skin} />
+          {/* hair, distinct per agent */}
+          <path d={HAIR[def.id] ?? HAIR.default} fill={HAIR_COLOR[def.id] ?? '#2b2118'} />
+          <rect x="-3.4" y="-35" width="1.9" height="2.4" rx="0.9" fill="#22303a" />
+          <rect x="1.5" y="-35" width="1.9" height="2.4" rx="0.9" fill="#22303a" />
+        </g>
       </g>
 
       {asleep ? (

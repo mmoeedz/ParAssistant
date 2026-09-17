@@ -210,7 +210,7 @@
   opacity: 0.2;
 }
 
-.ch__bob {
+.ch__body {
   animation: idle-bob 3.4s var(--ease) infinite;
 }
 
@@ -219,11 +219,29 @@
   50% { transform: translateY(-1px); }
 }
 
+/* Every limb pivots where a limb actually pivots — legs at the hip, arms at
+   the shoulder, head at the neck. Set once here rather than per animation, so
+   a pose and a gait can both use them. */
+.ch__leg--l { transform-origin: -3.75px -13px; }
+.ch__leg--r { transform-origin: 3.75px -13px; }
+.ch__arm--l { transform-origin: -9.75px -26px; }
+.ch__arm--r { transform-origin: 9.75px -26px; }
+.ch__head { transform-origin: 0 -29px; }
+
+/* Nothing snaps back to attention. When a gait or a pose stops, the limb eases
+   to its rest position over this instead of cutting on the frame the
+   animation is removed. */
+.ch__leg,
+.ch__arm,
+.ch__head {
+  transition: transform 200ms var(--ease);
+}
+
 .ch[data-state='standby'] {
   opacity: 0.72;
 }
 
-.ch[data-state='waking'] .ch__bob {
+.ch[data-state='waking'] .ch__body {
   animation: wake 480ms var(--ease);
 }
 
@@ -233,7 +251,12 @@
   100% { transform: none; }
 }
 
-.ch[data-walking='true'] .ch__bob {
+/* ---- the gait ----------------------------------------------------------
+   Contralateral, as people walk: left leg forward with the right arm, right
+   leg forward with the left. Legs swing wider than arms, and the body rises
+   on each step. All four limbs share one 420ms period so they stay in step. */
+
+.ch[data-walking='true'] .ch__body {
   animation: walk-bob 420ms linear infinite;
 }
 
@@ -242,15 +265,10 @@
   50% { transform: translateY(-1.6px); }
 }
 
-.ch[data-walking='true'] .ch__leg--l {
-  transform-origin: -3.75px -13px;
-  animation: step-a 420ms linear infinite;
-}
-
-.ch[data-walking='true'] .ch__leg--r {
-  transform-origin: 3.75px -13px;
-  animation: step-b 420ms linear infinite;
-}
+.ch[data-walking='true'] .ch__leg--l { animation: step-a 420ms linear infinite; }
+.ch[data-walking='true'] .ch__leg--r { animation: step-b 420ms linear infinite; }
+.ch[data-walking='true'] .ch__arm--r { animation: swing-a 420ms linear infinite; }
+.ch[data-walking='true'] .ch__arm--l { animation: swing-b 420ms linear infinite; }
 
 @keyframes step-a {
   0%, 100% { transform: rotate(15deg); }
@@ -262,14 +280,85 @@
   50% { transform: rotate(15deg); }
 }
 
-/* At the desk: a small typing motion instead of the idle sway. */
-.ch[data-seated='true'] .ch__bob {
+@keyframes swing-a {
+  0%, 100% { transform: rotate(13deg); }
+  50% { transform: rotate(-13deg); }
+}
+
+@keyframes swing-b {
+  0%, 100% { transform: rotate(-13deg); }
+  50% { transform: rotate(13deg); }
+}
+
+/* ---- at the desk -------------------------------------------------------
+   Working: both hands in to the keyboard and typing, out of phase so they
+   alternate, with an occasional glance up at the monitor. */
+
+.ch[data-seated='true'] .ch__body {
   animation: type-bob 900ms var(--ease) infinite;
 }
 
 @keyframes type-bob {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-0.8px); }
+}
+
+.ch[data-seated='true'] .ch__arm--l { transform: rotate(-24deg); }
+.ch[data-seated='true'] .ch__arm--r { transform: rotate(24deg); }
+
+.ch[data-state='working'] .ch__arm--l { animation: type-l 420ms ease-in-out infinite; }
+.ch[data-state='working'] .ch__arm--r { animation: type-r 420ms ease-in-out infinite; }
+
+@keyframes type-l {
+  0%, 100% { transform: rotate(-24deg); }
+  50% { transform: rotate(-31deg); }
+}
+
+@keyframes type-r {
+  0%, 50% { transform: rotate(24deg); }
+  75% { transform: rotate(31deg); }
+  100% { transform: rotate(24deg); }
+}
+
+.ch[data-state='working'] .ch__head {
+  animation: head-work 3.2s var(--ease) infinite;
+}
+
+@keyframes head-work {
+  0%, 60%, 100% { transform: none; }
+  30% { transform: translateY(0.7px) rotate(-4deg); }
+}
+
+/* ---- thinking ----------------------------------------------------------
+   One hand up to the chin and held there, rather than a body-wide wobble. */
+
+.ch[data-state='thinking'] .ch__arm--r {
+  animation: think-arm 2.8s var(--ease) infinite;
+}
+
+@keyframes think-arm {
+  0%, 100% { transform: rotate(0deg); }
+  22%, 78% { transform: rotate(-142deg); }
+}
+
+.ch[data-state='thinking'] .ch__head {
+  animation: think-head 2.8s var(--ease) infinite;
+}
+
+@keyframes think-head {
+  0%, 100% { transform: none; }
+  40% { transform: rotate(5deg); }
+}
+
+/* ---- handing off ------------------------------------------------------- */
+
+.ch[data-state='handoff'] .ch__arm--r {
+  animation: gesture 780ms var(--ease) infinite;
+}
+
+@keyframes gesture {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-42deg); }
 }
 
 .ch[data-state='working'] .ch__shadow,
@@ -387,9 +476,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ch,
-  .ch__bob,
-  .ch__leg--l,
-  .ch__leg--r,
+  .ch__body,
+  .ch__leg,
+  .ch__arm,
+  .ch__head,
   .ch__z,
   .tcore__ring,
   .ws__screen {
