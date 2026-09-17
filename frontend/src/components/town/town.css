@@ -132,9 +132,26 @@
 
 /* ---------------------------------------------------------- floor plan -- */
 
+.tmap__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 6px var(--sp-3);
+  border-bottom: 1px solid var(--hairline);
+  flex: none;
+}
+
+.tmap__hint {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+
 /* The Map tab pins each station in TownMap to its real seat coordinates, in
    the same percentage space the name tags use, so a pin lands exactly where
-   that agent stands when it is working. Sized in cqw like the tags, so the
+   that agent stands when it is working — its saved position once a drag has
+   been saved, its default one otherwise. Sized in cqw like the tags, so the
    plan stays readable at any panel size. */
 .tmark {
   position: absolute;
@@ -144,10 +161,24 @@
   align-items: center;
   gap: 0.6cqw;
   pointer-events: none;
+  touch-action: none;
 }
 
 .tmark[data-empty='true'] {
   opacity: 0.5;
+}
+
+/* Only a real agent can be picked up and moved — an unassigned station has
+   nothing to drag. */
+.tmark[data-draggable='true'] {
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.tmark[data-dragging='true'] {
+  cursor: grabbing;
+  z-index: 3;
+  transition: none;
 }
 
 .tmark__pin {
@@ -161,6 +192,36 @@
 
 .tmark[data-live='true'] .tmark__pin {
   animation: seat-pulse 1.5s var(--ease) infinite;
+}
+
+/* The agent's own character, standing in for a plain colour dot — solid and
+   at full opacity, so it reads as "someone is here" rather than a faint
+   marker. A tinted panel behind it keeps the flat trouser/skin colours from
+   disappearing into the floor art. */
+.tmark__avatar {
+  display: grid;
+  place-items: center;
+  width: 3.4cqw;
+  height: 4.8cqw;
+  border-radius: 0.7cqw;
+  background: color-mix(in srgb, var(--tone) 18%, rgba(10, 10, 13, 0.94));
+  border: 0.1cqw solid color-mix(in srgb, var(--tone) 55%, transparent);
+  box-shadow: 0 0 1.1cqw color-mix(in srgb, var(--tone) 40%, transparent);
+  opacity: 1;
+}
+
+.tmark__avatar svg {
+  width: 82%;
+  height: 82%;
+}
+
+.tmark[data-live='true'] .tmark__avatar {
+  animation: seat-pulse 1.5s var(--ease) infinite;
+}
+
+.tmark[data-draggable='true'] .tmark__avatar {
+  box-shadow: 0 0 1.1cqw color-mix(in srgb, var(--tone) 40%, transparent),
+    0 0 0 0.15cqw color-mix(in srgb, var(--tone) 70%, transparent);
 }
 
 .tmark__label {
@@ -532,6 +593,9 @@
 }
 
 .tbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   margin-left: auto;
   padding: 5px 12px;
   border-radius: var(--r-sm);
@@ -541,12 +605,30 @@
   font-size: 10px;
   letter-spacing: 0.08em;
   color: var(--text-dim);
-  transition: border-color var(--fast) var(--ease), color var(--fast) var(--ease);
+  transition: border-color var(--fast) var(--ease), color var(--fast) var(--ease),
+    background var(--fast) var(--ease);
 }
 
 .tbtn:hover {
   border-color: var(--accent-line);
   color: var(--accent);
+}
+
+/* The Map toolbar lays out several of these in a row — the flexible hint
+   text beside them already does the "push right" job a lone .tbtn's own
+   auto margin was for. */
+.tmap__bar .tbtn {
+  margin-left: 0;
+}
+
+.tbtn--accent {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tbtn--accent:hover {
+  background: color-mix(in srgb, var(--accent) 20%, var(--accent-soft));
 }
 
 @media (prefers-reduced-motion: reduce) {

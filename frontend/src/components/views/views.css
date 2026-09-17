@@ -335,6 +335,44 @@
   color: var(--tone);
 }
 
+/* Click-to-rename: the pencil is nearly invisible until the row is hovered
+   or focused, so a card that isn't being renamed just reads as a name. */
+.acard__name-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+}
+
+.acard__name-pencil {
+  flex: none;
+  color: var(--text-faint);
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.acard__name-edit:hover .acard__name-pencil,
+.acard__name-edit:focus-visible .acard__name-pencil {
+  opacity: 1;
+}
+
+.acard__name-edit:hover .acard__name-pencil {
+  color: var(--tone);
+}
+
+.acard__name-input {
+  width: 100%;
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid var(--tone);
+  background: var(--surface-solid);
+  font-family: var(--font-hud);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text);
+}
+
 .acard__role {
   font-size: var(--text-xs);
   color: var(--text-faint);

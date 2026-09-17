@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { useSession, WALK_UNITS_PER_MS } from '@/store/session'
-import { AGENTS, type AgentDef, type AgentRuntime } from '@/types/agents'
+import { AGENTS, agentName, type AgentDef, type AgentRuntime } from '@/types/agents'
 import { FLOOR_BASE_H, TownFloor } from './TownFloor'
 import './town.css'
 
@@ -74,6 +74,7 @@ export function useFloorBox(ref: RefObject<HTMLElement | null>, maxWidth = Infin
 
 export function TownStage({ maxWidth }: { maxWidth?: number } = {}) {
   const agents = useSession((s) => s.agents)
+  const overrides = useSession((s) => s.townOverrides)
   const stageRef = useRef<HTMLDivElement>(null)
   const { floorH, width } = useFloorBox(stageRef, maxWidth)
 
@@ -92,7 +93,8 @@ export function TownStage({ maxWidth }: { maxWidth?: number } = {}) {
         </svg>
 
         {roster.map((agent) => (
-          <NameTag key={agent.id} def={agent} runtime={agents[agent.id]} floorH={floorH} />
+          <NameTag key={agent.id} def={agent} runtime={agents[agent.id]} floorH={floorH}
+                   name={agentName(overrides, agent.id)} />
         ))}
       </div>
     </div>
@@ -109,13 +111,15 @@ function NameTag({
   def,
   runtime,
   floorH,
+  name,
 }: {
   def: AgentDef
   runtime: AgentRuntime
   floorH: number
+  name: string
 }) {
   const live = WORKING.has(runtime.state)
-  const label = def.name.charAt(0) + def.name.slice(1).toLowerCase()
+  const label = name.charAt(0) + name.slice(1).toLowerCase()
   const title = runtime.says
     ? `${label} — ${runtime.says}`
     : `${label} — ${def.role}, ${runtime.state}`

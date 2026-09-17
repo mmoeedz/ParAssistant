@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { Activity, ChevronRight, Users } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Activity, ChevronRight, Pencil, Users } from 'lucide-react'
 import { useSession } from '@/store/session'
 import {
   AGENTS,
   agentForTool,
+  agentName,
   type AgentDef,
   type AgentId,
   type AgentRuntime,
@@ -70,6 +71,7 @@ export function AgentsView() {
   const agents = useSession((s) => s.agents)
   const tasks = useSession((s) => s.tasks)
   const activeTaskId = useSession((s) => s.activeTaskId)
+  const overrides = useSession((s) => s.townOverrides)
   const [tab, setTab] = useState<Tab>('TOWN')
 
   const roster = AGENTS.filter((a) => a.id !== 'paradox')
@@ -105,25 +107,31 @@ export function AgentsView() {
         </div>
       </section>
 
-      <section className="panel agview__live">
-        <header className="panel__head">
-          <Activity size={14} />
-          <span className="section-title">LIVE AGENT ACTIVITY</span>
-          <span className="panel__count">
-            {active}/{roster.length} active
-          </span>
-          <button type="button" className="panel__action" onClick={() => setTab('LIST')}>
-            See all
-            <ChevronRight size={12} />
-          </button>
-        </header>
+      {/* Only under Town — the Map is about where a desk is, and the List is
+          about what an agent owns; neither needs a live feed duplicating what
+          the Town's own name tags and the strip below it already show. */}
+      {tab === 'TOWN' ? (
+        <section className="panel agview__live">
+          <header className="panel__head">
+            <Activity size={14} />
+            <span className="section-title">LIVE AGENT ACTIVITY</span>
+            <span className="panel__count">
+              {active}/{roster.length} active
+            </span>
+            <button type="button" className="panel__action" onClick={() => setTab('LIST')}>
+              See all
+              <ChevronRight size={12} />
+            </button>
+          </header>
 
-        <div className="agview__strip">
-          {roster.map((def) => (
-            <LiveCard key={def.id} def={def} runtime={agents[def.id]} task={live} />
-          ))}
-        </div>
-      </section>
+          <div className="agview__strip">
+            {roster.map((def) => (
+              <LiveCard key={def.id} def={def} runtime={agents[def.id]} task={live}
+                        name={agentName(overrides, def.id)} />
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   )
 }
@@ -162,14 +170,16 @@ function LiveCard({
   def,
   runtime,
   task,
+  name,
 }: {
   def: AgentDef
   runtime: AgentRuntime
   task: Task | null
+  name: string
 }) {
   const live = BUSY.includes(runtime.state)
   const share = shareOf(task, def.id)
-  const label = def.name.charAt(0) + def.name.slice(1).toLowerCase()
+  const label = name.charAt(0) + name.slice(1).toLowerCase()
 
   // What the agent is doing right now if it is doing anything — the store only
   // sets `activity` from a real step — and otherwise what it is there for.
@@ -220,6 +230,9 @@ function LiveCard({
 
 function AgentCard({ def, runtime }: { def: AgentDef; runtime: AgentRuntime }) {
   const dormant = def.tools.length === 0 && def.id !== 'paradox'
+  const overrides = useSession((s) => s.townOverrides)
+  const renameAgent = useSession((s) => s.renameAgent)
+  const name = agentName(overrides, def.id)
 
   return (
     <article className="acard" style={{ ['--tone' as string]: def.color }} data-dormant={dormant}>
@@ -235,7 +248,7 @@ function AgentCard({ def, runtime }: { def: AgentDef; runtime: AgentRuntime }) {
           </span>
         )}
         <div>
-          <div className="acard__name">{def.name}</div>
+          <EditableName value={name} onSave={(next) => renameAgent(def.id, next)} />
           <div className="acard__role">{def.role}</div>
         </div>
         <Badge tone={STATE_TONE[runtime.state]}>{runtime.state}</Badge>
@@ -274,5 +287,55 @@ function AgentCard({ def, runtime }: { def: AgentDef; runtime: AgentRuntime }) {
         </div>
       ) : null}
     </article>
+  )
+}
+
+/* --------------------------------------------------------------- rename -- */
+
+/**
+ * The agent's name, click-to-rename. Only the display name changes — the
+ * agent's id, and everything keyed off it (tools, colour, routing), stays
+ * exactly what it was, so a rename can't quietly break anything.
+ */
+function EditableName({ value, onSave }: { value: string; onSave: (name: string) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!editing) return
+    setDraft(value)
+    inputRef.current?.focus()
+    inputRef.current?.select()
+  }, [editing, value])
+
+  const commit = () => {
+    setEditing(false)
+    if (draft.trim() && draft.trim() !== value) onSave(draft)
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        className="acard__name-input"
+        value={draft}
+        maxLength={24}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit()
+          if (e.key === 'Escape') setEditing(false)
+        }}
+      />
+    )
+  }
+
+  return (
+    <button type="button" className="acard__name-edit" onClick={() => setEditing(true)}
+            title={`Rename ${value}`}>
+      <span className="acard__name">{value}</span>
+      <Pencil size={10} className="acard__name-pencil" />
+    </button>
   )
 }

@@ -164,6 +164,37 @@ export const AGENT_BY_ID: Record<AgentId, AgentDef> = Object.fromEntries(
   AGENTS.map((a) => [a.id, a]),
 ) as Record<AgentId, AgentDef>
 
+/**
+ * User-editable overrides on top of the static roster above: a display name
+ * and/or a hand-placed desk position, per agent. `AGENTS`/`AGENT_BY_ID` stay
+ * the fixed source of truth for everything else (id, tools, colour, home) —
+ * these two fields are the only ones a person can actually change from the
+ * UI, and only these need a second, mutable layer over the static data.
+ */
+export interface TownOverrides {
+  names: Partial<Record<AgentId, string>>
+  stations: Partial<Record<AgentId, { x: number; y: number }>>
+}
+
+export const EMPTY_OVERRIDES: TownOverrides = { names: {}, stations: {} }
+
+/** The name to actually show for this agent — its own, unless renamed. */
+export function agentName(overrides: TownOverrides, id: AgentId): string {
+  return overrides.names[id] ?? AGENT_BY_ID[id].name
+}
+
+/**
+ * Where this agent's desk actually is — its own station, unless someone has
+ * dragged it to a new spot on the Map and saved that. Once saved, this is
+ * what the walk state machine sends the agent to, not just what the Map
+ * displays: a moved desk is real, not cosmetic.
+ */
+export function agentStation(overrides: TownOverrides, id: AgentId): Station {
+  const custom = overrides.stations[id]
+  const base = AGENT_BY_ID[id].station
+  return custom ? { ...base, x: custom.x, y: custom.y } : base
+}
+
 const TOOL_OWNER = new Map<string, AgentId>()
 for (const agent of AGENTS) {
   for (const tool of agent.tools) TOOL_OWNER.set(tool, agent.id)

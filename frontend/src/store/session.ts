@@ -22,12 +22,15 @@ import {
   AGENTS,
   AGENT_BY_ID,
   CORRIDOR_Y,
+  EMPTY_OVERRIDES,
   WAKE_LINES,
   agentForTool,
+  agentStation,
   initialRuntime,
   type AgentId,
   type AgentRuntime,
   type AgentState,
+  type TownOverrides,
 } from '@/types/agents'
 import { DEFAULT_SETTINGS, type Settings } from '@/types/settings'
 import { projectPosition } from '@/lib/mediaClock'
@@ -106,6 +109,27 @@ function persistSettings(settings: Settings) {
   }
 }
 
+const OVERRIDES_KEY = 'paradox.town.overrides.v1'
+
+function loadOverrides(): TownOverrides {
+  try {
+    const raw = localStorage.getItem(OVERRIDES_KEY)
+    if (!raw) return EMPTY_OVERRIDES
+    const saved = JSON.parse(raw) as Partial<TownOverrides>
+    return { names: saved.names ?? {}, stations: saved.stations ?? {} }
+  } catch {
+    return EMPTY_OVERRIDES
+  }
+}
+
+function persistOverrides(overrides: TownOverrides) {
+  try {
+    localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides))
+  } catch {
+    /* storage can be unavailable; the layout stays session-only */
+  }
+}
+
 interface SessionState {
   view: View
   connection: ConnectionState
@@ -133,8 +157,13 @@ interface SessionState {
   agents: Record<AgentId, AgentRuntime>
   activity: ActivityEntry[]
   console: ConsoleLine[]
+  /** User edits on top of the static roster: renames and hand-placed desks. */
+  townOverrides: TownOverrides
 
   setView: (view: View) => void
+  renameAgent: (id: AgentId, name: string) => void
+  setAgentStation: (id: AgentId, pos: { x: number; y: number }) => void
+  resetAgentStation: (id: AgentId) => void
   connect: () => void
   disconnect: () => void
   submitPrompt: (text: string, source?: 'text' | 'voice') => void
@@ -221,6 +250,9 @@ export const useSession = create<SessionState>((set, get) => {
    */
   const activateAgent = (id: AgentId, activity: string) => {
     const def = AGENT_BY_ID[id]
+    // A hand-placed desk from the Map is a real destination, not a cosmetic
+    // one — the walk actually ends there, same as it would at the original.
+    const station = agentStation(get().townOverrides, id)
     const current = get().agents[id]
 
     if (current.state === 'working' && current.atStation) {
@@ -247,11 +279,11 @@ export const useSession = create<SessionState>((set, get) => {
         moveMs: toCorridorMs,
       })
       schedule(`${id}:leg2`, toCorridorMs, () => {
-        const alongMs = legDuration(def.station.x - home.x, 0)
-        patchAgent(id, { x: def.station.x, y: CORRIDOR_Y, moveMs: alongMs })
+        const alongMs = legDuration(station.x - home.x, 0)
+        patchAgent(id, { x: station.x, y: CORRIDOR_Y, moveMs: alongMs })
         schedule(`${id}:leg3`, alongMs, () => {
-          const toStationMs = legDuration(0, CORRIDOR_Y - def.station.y)
-          patchAgent(id, { x: def.station.x, y: def.station.y, moveMs: toStationMs })
+          const toStationMs = legDuration(0, CORRIDOR_Y - station.y)
+          patchAgent(id, { x: station.x, y: station.y, moveMs: toStationMs })
           schedule(`${id}:work`, toStationMs, () => {
             patchAgent(id, { state: 'working', atStation: true, says: null })
           })
@@ -269,7 +301,7 @@ export const useSession = create<SessionState>((set, get) => {
     clearTimer(`${id}:work`)
     patchAgent(id, { state, says: null })
     schedule(`${id}:home`, 900, () => {
-      const station = def.station
+      const station = agentStation(get().townOverrides, id)
       const toCorridorMs = legDuration(0, CORRIDOR_Y - station.y)
       patchAgent(id, {
         state: 'returning',
@@ -335,9 +367,41 @@ export const useSession = create<SessionState>((set, get) => {
     agents: initialRuntime(),
     activity: [],
     console: [],
+    townOverrides: loadOverrides(),
 
     setView: (view) => set({ view }),
     log: pushLog,
+
+    renameAgent: (id, name) => {
+      const trimmed = name.trim()
+      set((s) => {
+        const names = { ...s.townOverrides.names }
+        // An empty name isn't "renamed to blank" — it's "not renamed."
+        if (trimmed) names[id] = trimmed
+        else delete names[id]
+        const next = { ...s.townOverrides, names }
+        persistOverrides(next)
+        return { townOverrides: next }
+      })
+    },
+
+    setAgentStation: (id, pos) => {
+      set((s) => {
+        const next = { ...s.townOverrides, stations: { ...s.townOverrides.stations, [id]: pos } }
+        persistOverrides(next)
+        return { townOverrides: next }
+      })
+    },
+
+    resetAgentStation: (id) => {
+      set((s) => {
+        const stations = { ...s.townOverrides.stations }
+        delete stations[id]
+        const next = { ...s.townOverrides, stations }
+        persistOverrides(next)
+        return { townOverrides: next }
+      })
+    },
 
     connect: () => agentSocket.connect(get().settings.backendUrl),
 
