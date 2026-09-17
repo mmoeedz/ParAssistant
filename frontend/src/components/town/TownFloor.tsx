@@ -14,7 +14,7 @@
 /**
  * Structure is neutral grey to match the app's greyish-black theme; only the
  * things that are actually coloured objects in the scene — plants, wood,
- * and the coloured fittings — keep a hue.
+ * chairs, and the coloured fittings — keep a hue.
  */
 const C = {
   void: '#070708',
@@ -31,8 +31,8 @@ const C = {
   edge: '#8e8e96',
   counter: '#2c2c33',
   counterDeep: '#24242a',
-  chair: '#22222a',
-  chairLit: '#33333d',
+  chair: '#4a3324',
+  chairLit: '#6b4a30',
   screen: '#131317',
   glass: '#454b52',
   wood: '#6b5740',
