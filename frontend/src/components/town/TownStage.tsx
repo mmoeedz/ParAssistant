@@ -90,7 +90,52 @@ export function TownStage({ maxWidth }: { maxWidth?: number } = {}) {
             <Character key={agent.id} def={agent} runtime={agents[agent.id]} />
           ))}
         </svg>
+
+        {roster.map((agent) => (
+          <NameTag key={agent.id} def={agent} runtime={agents[agent.id]} floorH={floorH} />
+        ))}
       </div>
+    </div>
+  )
+}
+
+/**
+ * The name tag that rides above an agent's head. HTML rather than SVG so it
+ * can be sized in cqw and stay crisp; it moves on the same duration as the
+ * walk, and — unlike the character underneath it — never mirrors, since text
+ * read backwards isn't a "turn," just unreadable.
+ */
+function NameTag({
+  def,
+  runtime,
+  floorH,
+}: {
+  def: AgentDef
+  runtime: AgentRuntime
+  floorH: number
+}) {
+  const live = WORKING.has(runtime.state)
+  const label = def.name.charAt(0) + def.name.slice(1).toLowerCase()
+  const title = runtime.says
+    ? `${label} — ${runtime.says}`
+    : `${label} — ${def.role}, ${runtime.state}`
+
+  return (
+    <div
+      className="seat"
+      data-live={live}
+      data-away={!runtime.atStation}
+      data-state={runtime.state}
+      style={{
+        left: `${(runtime.x / FLOOR_W) * 100}%`,
+        top: `${((runtime.y - 62) / floorH) * 100}%`,
+        ['--tone' as string]: def.color,
+        ['--move-ms' as string]: `${runtime.moveMs}ms`,
+      }}
+      title={title}
+    >
+      <i className="seat__dot" />
+      <span className="seat__name">{label}</span>
     </div>
   )
 }
@@ -98,7 +143,7 @@ export function TownStage({ maxWidth }: { maxWidth?: number } = {}) {
 /* ------------------------------------------------------------ character -- */
 
 /** Small differences so the agents read as people, not clones. */
-const SKIN: Record<string, string> = {
+export const SKIN: Record<string, string> = {
   orion: '#e8c9a8',
   zeno: '#c98f63',
   luna: '#f0d5b8',
@@ -108,7 +153,7 @@ const SKIN: Record<string, string> = {
   kai: '#c98f63',
 }
 
-const HAIR_COLOR: Record<string, string> = {
+export const HAIR_COLOR: Record<string, string> = {
   orion: '#2b2118',
   zeno: '#4a2c17',
   luna: '#6b2f4a',
@@ -119,7 +164,7 @@ const HAIR_COLOR: Record<string, string> = {
 }
 
 // Each path is drawn over the 13-wide head that starts at y = -42.
-const HAIR: Record<string, string> = {
+export const HAIR: Record<string, string> = {
   default: 'M-7 -38.5 q0 -5 6.5 -5 q6.5 0 6.5 5 l0 1.5 l-13 0 z',
   // short crop
   orion: 'M-7 -38.5 q0 -5 6.5 -5 q6.5 0 6.5 5 l0 1.5 l-13 0 z',
@@ -138,7 +183,7 @@ const HAIR: Record<string, string> = {
 }
 
 /** Trousers, so the agents are not seven people in identical dark jeans. */
-const TROUSERS: Record<string, string> = {
+export const TROUSERS: Record<string, string> = {
   orion: '#25303c',
   zeno: '#3a2f26',
   luna: '#243528',

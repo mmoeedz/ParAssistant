@@ -312,6 +312,21 @@
   flex: none;
 }
 
+/* The agent's own Agent Town character, standing in for the plain accent
+   mark Paradox still uses. Framed in a small panel of its own so its flat
+   trouser/skin colours read against something other than the card's own
+   background. */
+.acard__portrait {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 52px;
+  flex: none;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--tone) 10%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--tone) 30%, transparent);
+}
+
 .acard__name {
   font-family: var(--font-hud);
   font-size: var(--text-sm);

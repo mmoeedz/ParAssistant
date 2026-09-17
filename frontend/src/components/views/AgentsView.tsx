@@ -12,6 +12,7 @@ import {
 import type { Task } from '@/types/protocol'
 import { TownStage } from '@/components/town/TownStage'
 import { TownMap } from '@/components/town/TownMap'
+import { AgentPortrait } from '@/components/town/AgentPortrait'
 import { Badge, Segmented } from '@/components/ui'
 import { relative } from '@/lib/time'
 import './views.css'
@@ -223,7 +224,16 @@ function AgentCard({ def, runtime }: { def: AgentDef; runtime: AgentRuntime }) {
   return (
     <article className="acard" style={{ ['--tone' as string]: def.color }} data-dormant={dormant}>
       <header className="acard__head">
-        <span className="acard__mark" />
+        {/* Paradox is the orchestrator, not a person walking the town floor —
+            it keeps the plain accent mark rather than a portrait it doesn't
+            have. Every other agent gets its actual Agent Town character. */}
+        {def.id === 'paradox' ? (
+          <span className="acard__mark" />
+        ) : (
+          <span className="acard__portrait">
+            <AgentPortrait def={def} />
+          </span>
+        )}
         <div>
           <div className="acard__name">{def.name}</div>
           <div className="acard__role">{def.role}</div>
