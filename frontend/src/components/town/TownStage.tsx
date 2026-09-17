@@ -90,50 +90,7 @@ export function TownStage({ maxWidth }: { maxWidth?: number } = {}) {
             <Character key={agent.id} def={agent} runtime={agents[agent.id]} />
           ))}
         </svg>
-
-        {roster.map((agent) => (
-          <NameTag key={agent.id} def={agent} runtime={agents[agent.id]} floorH={floorH} />
-        ))}
       </div>
-    </div>
-  )
-}
-
-/**
- * The name tag that rides above an agent's head. HTML rather than SVG so it
- * can be sized in cqw and stay crisp; it moves on the same 900ms as the walk.
- */
-function NameTag({
-  def,
-  runtime,
-  floorH,
-}: {
-  def: AgentDef
-  runtime: AgentRuntime
-  floorH: number
-}) {
-  const live = WORKING.has(runtime.state)
-  const label = def.name.charAt(0) + def.name.slice(1).toLowerCase()
-  const title = runtime.says
-    ? `${label} — ${runtime.says}`
-    : `${label} — ${def.role}, ${runtime.state}`
-
-  return (
-    <div
-      className="seat"
-      data-live={live}
-      data-away={!runtime.atStation}
-      data-state={runtime.state}
-      style={{
-        left: `${(runtime.x / FLOOR_W) * 100}%`,
-        top: `${((runtime.y - 62) / floorH) * 100}%`,
-        ['--tone' as string]: def.color,
-        ['--move-ms' as string]: `${runtime.moveMs}ms`,
-      }}
-      title={title}
-    >
-      <i className="seat__dot" />
-      <span className="seat__name">{label}</span>
     </div>
   )
 }
