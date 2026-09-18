@@ -1,7 +1,12 @@
 """LUNA — the communication agent.
 
-WhatsApp today. Every send names the recipient it verified with the app before
-typing, and reads the conversation back afterwards to check the message landed.
+WhatsApp today, two ways. `whatsapp_*` drives the desktop app as the user's
+own account — every send names the recipient it verified with the app before
+typing, and reads the conversation back afterwards to check it landed.
+`whatsapp_api_*` instead calls Meta's official Cloud API from a connected
+WhatsApp Business number — faster and more reliable, but a genuinely
+different capability (see computer/whatsapp_api.py for what it can and
+cannot do), not a faster mode of the desktop-automation path.
 """
 
 from __future__ import annotations
@@ -9,7 +14,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from ..computer import whatsapp as wa
-from .registry import Tool, ToolResult, integer, schema, string, untrusted
+from ..computer import whatsapp_api as wa_api
+from .registry import Tool, ToolResult, array, integer, schema, string, untrusted
 
 
 def whatsapp_open() -> ToolResult:
@@ -162,6 +168,54 @@ def whatsapp_send_voice(contact: str, text: str) -> ToolResult:
     )
 
 
+def whatsapp_api_send(to: str, message: str) -> ToolResult:
+    if not wa_api.configured():
+        return ToolResult.fail(
+            "the WhatsApp Cloud API is not connected — WHATSAPP_API_TOKEN and "
+            "WHATSAPP_PHONE_NUMBER_ID are not set. See backend/.env.example for setup.",
+            label="WhatsApp API not connected",
+        )
+    try:
+        result = wa_api.send_text(to, message)
+    except wa_api.WhatsAppAPIError as exc:
+        return ToolResult.fail(str(exc), label=f"Could not send to {to}")
+
+    return ToolResult(
+        ok=True,
+        summary=f"sent via the WhatsApp Business API to {to} (message id {result['message_id']}). "
+                "This went from the connected business number, not the user's own personal "
+                "WhatsApp — say so if that distinction matters to what was asked.",
+        evidence=f"API message id {result['message_id']}",
+        label=f"Sent to {to} via API",
+    )
+
+
+def whatsapp_api_send_template(
+    to: str,
+    template: str,
+    language: str = "en_US",
+    params: list[str] | None = None,
+) -> ToolResult:
+    if not wa_api.configured():
+        return ToolResult.fail(
+            "the WhatsApp Cloud API is not connected — WHATSAPP_API_TOKEN and "
+            "WHATSAPP_PHONE_NUMBER_ID are not set. See backend/.env.example for setup.",
+            label="WhatsApp API not connected",
+        )
+    try:
+        result = wa_api.send_template(to, template, language, params)
+    except wa_api.WhatsAppAPIError as exc:
+        return ToolResult.fail(str(exc), label=f"Could not send the {template!r} template to {to}")
+
+    return ToolResult(
+        ok=True,
+        summary=f"sent the {template!r} template via the WhatsApp Business API to {to} "
+                f"(message id {result['message_id']}).",
+        evidence=f"API message id {result['message_id']}",
+        label=f"Sent {template} to {to} via API",
+    )
+
+
 TOOLS = [
     Tool(
         name="whatsapp_open",
@@ -290,6 +344,68 @@ TOOLS = [
         timeout_hint=(
             "The audio may already have been attached and sent. whatsapp_read the "
             "conversation before sending it again — do not resend on a timeout alone."
+        ),
+    ),
+    Tool(
+        name="whatsapp_api_send",
+        description=(
+            "Send a WhatsApp text message through Meta's official Cloud API instead of the "
+            "desktop app — faster and does not need WhatsApp Desktop open, but sends from the "
+            "connected WhatsApp Business number, never the user's own personal WhatsApp. Only "
+            "delivers if the recipient messaged that business number in the last 24 hours, or is "
+            "one of the up to 5 numbers registered for testing (see backend/.env.example). Outside "
+            "that, use whatsapp_api_send_template instead. `to` is the phone number in "
+            "international format (country code + number; a leading + is fine, it is stripped)."
+        ),
+        schema=schema({
+            "to": string("Recipient's phone number, international format, e.g. +14155551234."),
+            "message": string("Exactly what to say."),
+        }, ["to", "message"]),
+        handler=whatsapp_api_send,
+        category="send_messages",
+        label=lambda a: f"Sending to {a.get('to')} via WhatsApp API",
+        confirm=lambda a: (
+            f"Send this to {a.get('to')} via the WhatsApp Business API?",
+            str(a.get("message", "")),
+            {"To": str(a.get("to")), "Message": str(a.get("message")), "Via": "WhatsApp Cloud API"},
+        ),
+        timeout_hint=(
+            "The message may already have gone through even though this call did not confirm "
+            "it in time — do not resend on a timeout alone."
+        ),
+    ),
+    Tool(
+        name="whatsapp_api_send_template",
+        description=(
+            "Send a pre-approved WhatsApp message template through Meta's Cloud API — the only "
+            "way to message someone who has not messaged the connected business number in the "
+            "last 24 hours (and is not one of the test numbers). The template must already exist "
+            "and be approved in the Meta Business dashboard; this cannot create or check one, "
+            "only send it. `params` fill the template's numbered placeholders ({{1}}, {{2}}, …) "
+            "in order, if it has any."
+        ),
+        schema=schema({
+            "to": string("Recipient's phone number, international format."),
+            "template": string("The approved template's exact name."),
+            "language": string("The template's language code, e.g. en_US. Defaults to en_US."),
+            "params": array("Values for the template's placeholders, in order, if any."),
+        }, ["to", "template"]),
+        handler=whatsapp_api_send_template,
+        category="send_messages",
+        label=lambda a: f"Sending the {a.get('template')} template to {a.get('to')} via WhatsApp API",
+        confirm=lambda a: (
+            f"Send the {a.get('template')!r} template to {a.get('to')} via the WhatsApp Business API?",
+            ", ".join(str(p) for p in (a.get("params") or [])) or "(no placeholders)",
+            {
+                "To": str(a.get("to")),
+                "Template": str(a.get("template")),
+                "Language": str(a.get("language") or "en_US"),
+                "Via": "WhatsApp Cloud API",
+            },
+        ),
+        timeout_hint=(
+            "The message may already have gone through even though this call did not confirm "
+            "it in time — do not resend on a timeout alone."
         ),
     ),
 ]

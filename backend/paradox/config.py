@@ -88,6 +88,24 @@ class Config:
                 return value
         return None
 
+    # ------------------------------------------------------- whatsapp api --
+    # The official Cloud API — a different capability from the UI-automation
+    # path in computer/whatsapp.py, not a faster version of it. See
+    # computer/whatsapp_api.py and .env.example for what these are and where
+    # to get them.
+
+    @property
+    def whatsapp_api_token(self) -> str | None:
+        return os.getenv("WHATSAPP_API_TOKEN")
+
+    @property
+    def whatsapp_phone_number_id(self) -> str | None:
+        return os.getenv("WHATSAPP_PHONE_NUMBER_ID")
+
+    @property
+    def whatsapp_api_version(self) -> str:
+        return os.getenv("WHATSAPP_API_VERSION", "v21.0")
+
     def ensure_dirs(self) -> None:
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.screenshot_dir.mkdir(parents=True, exist_ok=True)

@@ -138,6 +138,7 @@ export const AGENTS: AgentDef[] = [
     tools: [
       'whatsapp_open', 'whatsapp_search', 'whatsapp_open_chat', 'whatsapp_read',
       'whatsapp_send', 'whatsapp_send_file', 'whatsapp_send_voice',
+      'whatsapp_api_send', 'whatsapp_api_send_template',
     ],
   },
   {
