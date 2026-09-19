@@ -75,7 +75,7 @@
   align-items: center;
   gap: var(--sp-2);
   font-family: var(--font-hud);
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.1em;
   color: var(--text-faint);
 }
@@ -271,6 +271,27 @@
   border: 1px solid var(--border);
   background: var(--surface-2);
   transition: border-color var(--med) var(--ease), box-shadow var(--med) var(--ease);
+}
+
+/* Attach, push-to-talk, wake and send take ~150px of a row. On a phone-width
+   panel that leaves the field itself around 130px — too narrow to read back
+   what you just typed, let alone the placeholder. So the field takes the
+   first row on its own and the controls sit under it, right-aligned: the
+   ordinary mobile composer, rather than a desktop one with the input
+   squeezed to a stub. */
+@container panel (max-width: 380px) {
+  .composer__box {
+    flex-wrap: wrap;
+    /* Right-aligns the second line; the field on the first fills it anyway. */
+    justify-content: flex-end;
+    padding: var(--sp-2);
+    row-gap: var(--sp-2);
+  }
+
+  .composer textarea {
+    flex-basis: 100%;
+    padding-inline: 4px;
+  }
 }
 
 .composer__box:focus-within {

@@ -9,15 +9,30 @@
   --font-hud: Poppins, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', ui-monospace, Consolas, monospace;
 
-  --text-xs: 10.5px;
-  --text-sm: 12px;
-  --text-base: 13px;
-  --text-md: 14px;
-  --text-lg: 17px;
-  --text-xl: 21px;
-  --text-2xl: 28px;
+  /* ------------------------------------------------------------ scale --
+     One multiplier drives the whole type scale, so density is a single
+     decision rather than a hundred font-size overrides. It stays at 1 from
+     a phone right up through a 1920 desktop — the resolution this design
+     was drawn at — and only opens up past that, where CSS pixels are
+     genuinely being shown on more physical glass.
 
-  --hud-size: 10px;
+     Each step is gated on height as well as width. A 3440x1440 ultrawide is
+     no taller than a 2560x1440 monitor, and treating it as "bigger" purely
+     because it is wider would push the fold down on a panel that has the
+     same vertical room as before. A 4K panel with OS scaling never reports
+     3840 CSS pixels in the first place, so these rules correctly leave it
+     alone and let the platform's own scaling do the work. */
+  --ui-scale: 1;
+
+  --text-xs: calc(10.5px * var(--ui-scale));
+  --text-sm: calc(12px * var(--ui-scale));
+  --text-base: calc(13px * var(--ui-scale));
+  --text-md: calc(14px * var(--ui-scale));
+  --text-lg: calc(17px * var(--ui-scale));
+  --text-xl: calc(21px * var(--ui-scale));
+  --text-2xl: calc(28px * var(--ui-scale));
+
+  --hud-size: calc(10px * var(--ui-scale));
   --hud-track: 0.12em;
 
   --sp-1: 4px;
@@ -28,6 +43,22 @@
   --sp-6: 24px;
   --sp-8: 32px;
   --sp-10: 40px;
+
+  /* ----------------------------------------------------------- layout --
+     The gutter between and around the workspace columns, and the ceiling
+     the workspace is allowed to grow to. Both are fluid so the shell reads
+     as deliberately laid out at 360px and at 3440px, rather than as one
+     size with the other bolted on. */
+  --gutter: clamp(10px, 0.9vw, 22px);
+  --shell-max: 2200px;
+  /* Reading measure for the prose views — long lines are the single
+     easiest way to make a wide monitor feel worse than a narrow one. */
+  --read-max: 980px;
+  --titlebar-h: 52px;
+
+  /* Minimum comfortable hit area. Applied only under a coarse pointer, so
+     a mouse-driven desktop keeps its compact instrument-panel controls. */
+  --tap: 44px;
 
   --r-sm: 4px;
   --r-md: 8px;
@@ -124,6 +155,74 @@
   --desk: #2c2c33;
   --desk-edge: rgba(255, 255, 255, 0.14);
   --wall: #121215;
+}
+
+/* --------------------------------------------------------- scale steps -- */
+
+/* Small screens go the other way: the HUD sizes were drawn for a monitor an
+   arm's length away, and 10px of uppercase letter-spaced text on a phone is
+   not readable. Only the small end of the scale is floored — raising the
+   whole ramp would just be the desktop layout enlarged, which is the thing
+   this is meant to avoid.
+
+   The pointer query matters as much as the width one, and for the same
+   reason: a tablet at 1024px is still a device held at arm's length and
+   driven with a finger, while a 700px browser window on a desktop is not.
+   Width alone would have given the tablet the desktop's 10px captions. */
+@media (max-width: 700px), (pointer: coarse) {
+  :root {
+    --text-xs: 11px;
+    --text-sm: 12.5px;
+    --hud-size: 11px;
+  }
+}
+
+/* How wide the workspace may grow is a question about card widths and line
+   lengths, so it steps on width alone. How large the text is, is a question
+   about physical pixel density, so it also asks about height: a 3440x1440
+   ultrawide and a 2560x1440 monitor are the same ~110ppi glass and want the
+   same type, while a genuinely tall 3840x2160 panel is ~140ppi and wants
+   more. That is why the largest step asks for 2000px of height — the only
+   common displays that report it are unscaled 4K and up. */
+@media (min-width: 2400px) {
+  :root {
+    --shell-max: 2400px;
+  }
+}
+
+@media (min-width: 3200px) {
+  :root {
+    --shell-max: 2720px;
+  }
+}
+
+/* A 49" 5120x1440 is a different proposition from a 4K panel: it has barely
+   more height than a laptop and three times the width, so holding it to
+   2720px leaves 1200px of void on each side and the app reads as abandoned
+   in the middle of the screen. It gets more width — but not all of it, or
+   the console's log lines stop being readable. */
+@media (min-width: 4400px) {
+  :root {
+    --shell-max: 3200px;
+  }
+}
+
+@media (min-width: 1920px) and (min-height: 900px) {
+  :root {
+    --ui-scale: 1.05;
+  }
+}
+
+@media (min-width: 2400px) and (min-height: 1000px) {
+  :root {
+    --ui-scale: 1.12;
+  }
+}
+
+@media (min-width: 3400px) and (min-height: 2000px) {
+  :root {
+    --ui-scale: 1.2;
+  }
 }
 
 [data-theme='light'] {

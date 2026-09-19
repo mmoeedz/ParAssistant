@@ -86,7 +86,7 @@
 .confirm__tool {
   margin-left: auto;
   font-family: var(--font-hud);
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.08em;
   color: var(--text-faint);
 }

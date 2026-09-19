@@ -8,22 +8,31 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
-  padding: var(--sp-3);
-  overflow-y: auto;
+  gap: var(--gutter);
+  padding: var(--gutter);
+  width: 100%;
+  max-width: var(--shell-max);
+  margin-inline: auto;
   overflow-x: hidden;
 }
 
-/* Below ~300px the town is a letterbox slit rather than a room, so that is
-   where the stage stops giving ground and the page scrolls instead. */
+/* The Agents tab gives the town the page: it grows to fill the view, and the
+   stage's own 790:350 ratio decides how much of that the room can use. No
+   min-height — the ratio already guarantees the room is never a slit. */
 .agview__stage {
   flex: 1;
-  min-height: 300px;
 }
 
 .agview__head {
-  padding: var(--sp-3) var(--sp-4);
-  gap: var(--sp-3);
+  padding: var(--sp-3) clamp(var(--sp-3), 2.5cqi, var(--sp-4));
+  gap: var(--sp-2) var(--sp-3);
+  flex-wrap: wrap;
+}
+
+@media (min-width: 1100px) and (min-height: 700px) {
+  .agview {
+    overflow-y: auto;
+  }
 }
 
 .agview__title {
@@ -56,7 +65,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--sp-4);
+  padding: clamp(var(--sp-3), 2.5cqi, var(--sp-4));
 }
 
 /* -------------------------------------------------- live activity strip -- */
@@ -65,26 +74,35 @@
   flex: none;
 }
 
-/* 150px still holds a name and its status pill, and it is low enough that the
-   whole roster lands on one row from about 1200px up. Below that the count is
-   pinned so the rows stay even — auto-fit would give six columns and leave the
-   seventh agent sitting on its own. */
+/* Seven agents, and a row that should stay even rather than leaving one card
+   stranded on a line of its own. auto-fit would do exactly that at six
+   columns, so the counts are chosen: 7 across once every card can hold a
+   name and its status pill, then 4, 2, and 1. The panel asks, not the
+   viewport, because this strip is full-bleed on a phone and inset inside a
+   capped shell on an ultrawide. */
 .agview__strip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  padding: var(--sp-3) clamp(var(--sp-3), 2.5cqi, var(--sp-4))
+    clamp(var(--sp-3), 2.5cqi, var(--sp-4));
 }
 
-@media (max-width: 1180px) {
+@container panel (min-width: 380px) {
+  .agview__strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container panel (min-width: 720px) {
   .agview__strip {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 720px) {
+@container panel (min-width: 1180px) {
   .agview__strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
   }
 }
 
@@ -166,7 +184,7 @@
   border: 1px solid var(--hairline);
   background: var(--surface-3);
   font-family: var(--font-hud);
-  font-size: 9.5px;
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -206,7 +224,7 @@
   flex: 1;
   min-width: 0;
   font-family: var(--font-hud);
-  font-size: 9.5px;
+  font-size: var(--text-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-faint);
@@ -268,10 +286,13 @@
 
 /* ---------------------------------------------------------- agent cards -- */
 
+/* min() rather than a bare 268px: below a 300px-wide list the fixed minimum
+   would be larger than the track and the cards would overflow their panel.
+   This lets the column collapse to the space that actually exists. */
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
-  gap: var(--sp-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(268px, 100%), 1fr));
+  gap: clamp(var(--sp-3), 1.4vw, var(--sp-5));
 }
 
 .acard {
@@ -405,7 +426,7 @@
 
 .acard__stats dt {
   font-family: var(--font-hud);
-  font-size: 9px;
+  font-size: var(--text-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-faint);
@@ -429,7 +450,7 @@
   border: 1px solid var(--hairline);
   background: var(--surface-2);
   font-family: var(--font-hud);
-  font-size: 9.5px;
+  font-size: var(--text-xs);
   color: var(--text-faint);
 }
 
@@ -538,7 +559,7 @@
 
 .history__time {
   font-family: var(--font-hud);
-  font-size: 9.5px;
+  font-size: var(--text-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-faint);
@@ -568,34 +589,43 @@
 
 /* ------------------------------------------------------------ system tab -- */
 
+/* Two arrangements again. A 236px rail beside the content is right from a
+   tablet up; on a phone it would take most of the screen, so the same nav
+   becomes a horizontal bar above the content — sections on one scrollable
+   row, the sub-sections on the row beneath. Same markup, same order, same
+   controls; the axis is what changes. */
 .sysview {
-  display: grid;
-  grid-template-columns: 236px minmax(0, 1fr);
-  height: 100%;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
 }
 
 .sysnav {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--sp-4) var(--sp-3);
-  border-right: 1px solid var(--border);
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 2px var(--sp-1);
+  padding: var(--sp-2) var(--gutter);
+  border-bottom: 1px solid var(--border);
   background: var(--surface);
-  overflow-y: auto;
 }
 
 .sysnav__item {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  height: 34px;
+  min-height: 34px;
   padding: 0 var(--sp-3);
   border-radius: var(--r-md);
   color: var(--text-faint);
   font-size: var(--text-sm);
+  white-space: nowrap;
   text-align: left;
   transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.sysnav__item svg {
+  flex: none;
 }
 
 .sysnav__item:hover {
@@ -608,20 +638,25 @@
   color: var(--accent);
 }
 
+/* Horizontal form: its own full-width row under the section buttons, so the
+   five capability names read as a second level rather than continuing the
+   first one's row. */
 .sysnav__sub {
+  flex-basis: 100%;
   display: flex;
-  flex-direction: column;
-  gap: 1px;
-  margin: var(--sp-1) 0 var(--sp-2) var(--sp-5);
-  padding-left: var(--sp-2);
-  border-left: 1px solid var(--hairline);
+  flex-wrap: wrap;
+  gap: 1px var(--sp-1);
+  margin: var(--sp-1) 0 0;
+  padding-top: var(--sp-1);
+  border-top: 1px solid var(--hairline);
 }
 
 .sysnav__subitem {
-  height: 28px;
+  min-height: 28px;
   padding: 0 var(--sp-2);
   border-radius: var(--r-sm);
   font-size: var(--text-sm);
+  white-space: nowrap;
   color: var(--text-faint);
   text-align: left;
   transition: color var(--fast) var(--ease), background var(--fast) var(--ease);
@@ -636,18 +671,68 @@
   background: var(--surface-2);
 }
 
+/* Reassurance, not navigation — it is the first thing to go when the nav is
+   a bar rather than a rail, and comes back in the sidebar form below. */
 .sysnav__foot {
-  margin-top: auto;
-  padding-top: var(--sp-3);
-  display: flex;
+  display: none;
   gap: 6px;
-  font-size: 10.5px;
+  font-size: var(--text-xs);
   line-height: 1.45;
   color: var(--text-faint);
+}
+
+.sysnav__foot svg {
+  flex: none;
+  margin-top: 2px;
 }
 
 .sysbody {
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+}
+
+/* ---- the sidebar form ------------------------------------------------- */
+
+@media (min-width: 760px) {
+  .sysview {
+    display: grid;
+    grid-template-columns: clamp(200px, 17vw, 260px) minmax(0, 1fr);
+  }
+
+  .sysnav {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding: var(--sp-4) var(--sp-3);
+    border-bottom: 0;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+  }
+
+  .sysnav__sub {
+    flex-direction: column;
+    gap: 1px;
+    margin: var(--sp-1) 0 var(--sp-2) var(--sp-5);
+    padding: 0 0 0 var(--sp-2);
+    border-top: 0;
+    border-left: 1px solid var(--hairline);
+  }
+
+  .sysnav__foot {
+    display: flex;
+    margin-top: auto;
+    padding-top: var(--sp-3);
+  }
+}
+
+/* Only inside the app shell does this page own a viewport height to divide
+   between a fixed rail and a scrolling body. */
+@media (min-width: 1100px) and (min-height: 700px) {
+  .sysview {
+    height: 100%;
+  }
+
+  .sysbody {
+    overflow: hidden;
+  }
 }

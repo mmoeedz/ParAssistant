@@ -73,8 +73,12 @@ export function AgentTown() {
           </span>
           {stats ? `${Math.round(stats.cpu)}%` : '—'}
         </span>
-        <span className="tstat">{roster.length - busy.length}/{roster.length} seated</span>
-        <span className="tstat">
+        {/* Both restate the "N/7 agents active" count above from another
+            angle, so they are the ones town.css drops on a narrow panel. */}
+        <span className="tstat tstat--secondary">
+          {roster.length - busy.length}/{roster.length} seated
+        </span>
+        <span className="tstat tstat--secondary">
           {busy.filter((a) => WORKING.has(agents[a.id].state)).length}/{roster.length} busy
         </span>
         <button type="button" className="tbtn" onClick={() => setView('agents')}>

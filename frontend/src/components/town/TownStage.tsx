@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type RefObject } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { useSession, WALK_UNITS_PER_MS } from '@/store/session'
 import { AGENTS, agentName, type AgentDef, type AgentRuntime } from '@/types/agents'
 import { FLOOR_BASE_H, TownFloor } from './TownFloor'
@@ -14,75 +14,77 @@ import './town.css'
 
 export const WORKING = new Set(['working', 'thinking', 'waiting', 'handoff'])
 
-/** The floor is 790 units wide; its height follows the panel it is given. */
+/** The artwork's own size. The room is always drawn at exactly this shape. */
 export const FLOOR_W = 790
 
-/** TownFloor's own clamp: it never draws itself shorter than this. */
-const FLOOR_MIN_H = 300
-
-export interface FloorBox {
-  /** Floor height in the artwork's units — what TownFloor and the viewBox use. */
-  floorH: number
-  /** Room width in CSS pixels, or 0 before the first measurement. */
-  width: number
-}
+/**
+ * How deep the floor may be drawn, in artwork units.
+ *
+ * The room is 790 units wide and its rooms stretch downwards from the
+ * corridor (see TownFloor) — so when the stage is taller than 790:350, the
+ * honest way to use the extra height is to draw more floor at the same
+ * scale, not to scale the pixel art up or leave a dead band. The ceiling
+ * stops a very tall panel producing an absurdly deep office; past it the
+ * room letterboxes like any other contain fit.
+ */
+export const FLOOR_H_MAX = 720
 
 /**
- * Size the room inside a stage.
+ * The floor depth that fills this stage at its current shape.
  *
- * The floor keeps a fixed width of 790 units and takes whatever height it is
- * given, so it fills its panel without the drawing being stretched. Two
- * limits on how wide the room may actually be:
- *
- *  - 790:300 is the flattest the art exists at. Past that TownFloor still
- *    draws itself 300 units tall (it clamps), so the bottom of the room falls
- *    outside the viewBox and is silently cut off — which is what a full-width
- *    stage did before this clamp. Letterbox instead of cropping.
- *  - `maxWidth`, for a stage so wide that filling it would just blow every
- *    desk up to two or three times the size it was drawn at.
- *
- * The stage is measured, not the room, because the room's width is this
- * function's own output — observing it would feed back on itself.
+ * Only ever *extends* the floor: a stage wider than 790:350 keeps the base
+ * depth and letterboxes sideways (the CSS on .town__room does that part), so
+ * nothing in the drawing is ever cropped. The stage's size never depends on
+ * this value — its height comes from its grid row or its own aspect-ratio —
+ * so measuring it cannot feed back on itself.
  */
-export function useFloorBox(ref: RefObject<HTMLElement | null>, maxWidth = Infinity): FloorBox {
-  const [box, setBox] = useState<FloorBox>({ floorH: FLOOR_BASE_H, width: 0 })
+export function useFloorH(ref: RefObject<HTMLElement | null>, maxWidth = Infinity): number {
+  const [floorH, setFloorH] = useState(FLOOR_BASE_H)
 
   useLayoutEffect(() => {
     const stage = ref.current
     if (!stage) return
-
     const measure = () => {
       const r = stage.getBoundingClientRect()
       if (!r.width || !r.height) return
-      const width = Math.min(r.width, maxWidth, (r.height * FLOOR_W) / FLOOR_MIN_H)
-      const floorH = Math.round((FLOOR_W * r.height) / width)
-      setBox((prev) =>
-        Math.abs(prev.floorH - floorH) < 2 && Math.abs(prev.width - width) < 2
-          ? prev
-          : { floorH, width },
+      const width = Math.min(r.width, maxWidth)
+      const next = Math.round(
+        Math.min(FLOOR_H_MAX, Math.max(FLOOR_BASE_H, (FLOOR_W * r.height) / width)),
       )
+      setFloorH((prev) => (Math.abs(prev - next) < 2 ? prev : next))
     }
-
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(stage)
     return () => observer.disconnect()
   }, [ref, maxWidth])
 
-  return box
+  return floorH
+}
+
+/**
+ * The stage's inline style: the floor depth for the room's CSS fit, and an
+ * optional ceiling on how wide the room may be drawn, so a 3440px monitor
+ * gets a composed dashboard rather than a two-metre-wide office.
+ */
+export function stageStyle(floorH: number, maxWidth?: number): CSSProperties {
+  return {
+    ['--floor-h' as string]: floorH,
+    ...(maxWidth ? { ['--town-max' as string]: `${maxWidth}px` } : {}),
+  } as CSSProperties
 }
 
 export function TownStage({ maxWidth }: { maxWidth?: number } = {}) {
   const agents = useSession((s) => s.agents)
   const overrides = useSession((s) => s.townOverrides)
   const stageRef = useRef<HTMLDivElement>(null)
-  const { floorH, width } = useFloorBox(stageRef, maxWidth)
+  const floorH = useFloorH(stageRef, maxWidth)
 
   const roster = AGENTS.filter((a) => a.id !== 'paradox')
 
   return (
-    <div className="town__stage" ref={stageRef}>
-      <div className="town__room" role="img" style={{ width: width || undefined }}
+    <div className="town__stage" ref={stageRef} style={stageStyle(floorH, maxWidth)}>
+      <div className="town__room" role="img"
            aria-label="Agent Town — where the Paradox agents work">
         <svg viewBox={`0 0 ${FLOOR_W} ${floorH}`} className="town__layer"
              preserveAspectRatio="none">

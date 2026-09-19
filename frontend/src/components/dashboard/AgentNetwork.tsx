@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from 'react'
 import {
   Eye,
   FolderOpen,
@@ -45,6 +52,21 @@ interface Wires {
 }
 
 /**
+ * The two rails, and who sits on each.
+ *
+ * Six of the seven agents, three a side, with the Core between them — the
+ * arrangement the network is drawn as. The split is declared here rather than
+ * derived from the roster order so that adding an agent is a deliberate
+ * decision about which side it belongs on, not a silent reflow of both rails.
+ */
+const LEFT_IDS = ['orion', 'zeno', 'luna'] as const
+const RIGHT_IDS = ['axel', 'aria', 'nova'] as const
+
+function railOf(ids: readonly string[]): AgentDef[] {
+  return ids.map((id) => AGENTS.find((a) => a.id === id)).filter((a): a is AgentDef => Boolean(a))
+}
+
+/**
  * The four words under the core title are not decoration — each maps to a
  * real signal already in the store (see PHASES below and how `learnAt` is
  * set). "Learn" specifically: the backend records every task to memory in
@@ -56,39 +78,35 @@ const PHASE_WORDS = ['THINK', 'COORDINATE', 'EXECUTE', 'LEARN'] as const
 
 const LIVE_TASK: Task['status'][] = ['planning', 'running', 'awaiting_confirmation']
 
-export function AgentNetwork({ style }: { style?: CSSProperties } = {}) {
-  const agents = useSession((s) => s.agents)
-  const tasks = useSession((s) => s.tasks)
-  const activeTaskId = useSession((s) => s.activeTaskId)
-  const setView = useSession((s) => s.setView)
+/**
+ * Measure one rail's cables.
+ *
+ * The connectors are measured rather than assumed. Card height moves with the
+ * font, with the panel's own height and with which layout the container query
+ * picked, so coordinates written by hand drift out of line with the dots they
+ * are supposed to leave from. Observing the cards, the SVG and each individual
+ * card means a relayout of any kind — a window resize, the rail switching from
+ * three rows to a stacked grid, a font finishing loading — recomputes the
+ * geometry from what is actually on screen.
+ */
+function useWires(
+  cardsRef: RefObject<HTMLDivElement | null>,
+  svgRef: RefObject<SVGSVGElement | null>,
+  count: number,
+): Wires {
+  const [wires, setWires] = useState<Wires>({ w: 92, h: 260, ys: [] })
 
-  // The callout above the Core only ever shows a task that is genuinely in
-  // flight right now — never the last-known task once it's settled, and
-  // never placeholder text. When nothing is running it simply isn't there.
-  const liveTask = tasks.find((t) => t.id === activeTaskId && LIVE_TASK.includes(t.status))
-
-  // The reference lists these four, in this order.
-  const shown = ['orion', 'zeno', 'luna', 'nova']
-    .map((id) => AGENTS.find((a) => a.id === id))
-    .filter((a): a is AgentDef => Boolean(a))
-
-  const cardsRef = useRef<HTMLDivElement>(null)
-  const linksRef = useRef<SVGSVGElement>(null)
-  const [wires, setWires] = useState<Wires>({ w: 104, h: 260, ys: [] })
-
-  /**
-   * The connectors are measured rather than assumed. Card height moves with the
-   * font and with the panel's own height, so coordinates written by hand drift
-   * out of line with the dots they are supposed to leave from.
-   */
   useLayoutEffect(() => {
     const cards = cardsRef.current
-    const svg = linksRef.current
+    const svg = svgRef.current
     if (!cards || !svg) return
 
     const measure = () => {
       const base = svg.getBoundingClientRect()
-      if (!base.height) return
+      // Zero height means the cables are display:none in the current layout
+      // (see the container queries in dashboard.css) — nothing to measure,
+      // and the last good geometry is kept rather than zeroed.
+      if (!base.height || !base.width) return
       // Divide out any transform on an ancestor, so the viewBox stays in the
       // element's own CSS pixels whatever the panel is scaled by.
       const scale = svg.clientWidth ? base.width / svg.clientWidth : 1
@@ -109,7 +127,115 @@ export function AgentNetwork({ style }: { style?: CSSProperties } = {}) {
     observer.observe(svg)
     for (const card of cards.children) observer.observe(card)
     return () => observer.disconnect()
-  }, [shown.length])
+  }, [cardsRef, svgRef, count])
+
+  return wires
+}
+
+/**
+ * One side of the network: a rail of agent cards and the cables joining them
+ * to the Core. Renders both as siblings so they land in their own grid
+ * columns of .net__body, in the order that side needs them.
+ */
+function Rail({
+  side,
+  defs,
+  agents,
+}: {
+  side: 'left' | 'right'
+  defs: AgentDef[]
+  agents: Record<string, { state: AgentState }>
+}) {
+  const cardsRef = useRef<HTMLDivElement>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+  const wires = useWires(cardsRef, svgRef, defs.length)
+
+  const cards = (
+    <div className={`net__cards net__cards--${side}`} ref={cardsRef}>
+      {defs.map((agent) => (
+        <AgentCard key={agent.id} def={agent} state={agents[agent.id].state} />
+      ))}
+    </div>
+  )
+
+  const cables = (
+    <svg
+      ref={svgRef}
+      className={`net__links net__links--${side}`}
+      viewBox={`0 0 ${wires.w} ${wires.h}`}
+      aria-hidden="true"
+    >
+      {wires.ys.map((y, i) => {
+        const agent = defs[i]
+        if (!agent) return null
+        const live = LIVE.includes(agents[agent.id].state)
+        // Cable routing: a short run out of the card, one smooth S-bend
+        // across the gap, then a run into the Core's edge. Each cable leaves
+        // its own column so the bends stay separate instead of overlapping
+        // into a bundle, and the run-outs are a fraction of the column's
+        // width rather than fixed pixels — on a narrow panel the gap can be
+        // 26px, where a hardcoded 16px run-out would overshoot the bend and
+        // double the cable back on itself.
+        const w = wires.w
+        const lead = Math.min(16, w * 0.3)
+        const fan = Math.min(6, w * 0.06)
+        const pad = Math.min(14, w * 0.25)
+        const end = wires.h / 2 + (i - (wires.ys.length - 1) / 2) * 15
+        const x1 = side === 'left' ? lead + i * fan : w - lead - i * fan
+        const x2 = side === 'left' ? w - pad : pad
+        const k = Math.abs(x2 - x1) * 0.5
+        const c1 = side === 'left' ? x1 + k : x1 - k
+        const c2 = side === 'left' ? x2 - k : x2 + k
+        const from = side === 'left' ? 0 : w
+        const to = side === 'left' ? w : 0
+        const d = `M ${from} ${y} H ${x1} C ${c1} ${y}, ${c2} ${end}, ${x2} ${end} H ${to}`
+        return (
+          <g key={agent.id}>
+            <path d={d} className="net__link" data-live={live} stroke={agent.color}
+                  style={{ color: agent.color }} />
+            <circle cx={x1} cy={y} r="2.1" fill={agent.color}
+                    className="net__node" style={{ color: agent.color }} />
+            {/* A real signal reaching the Core, not decoration: this only
+                exists while the backend has reported that agent as live. */}
+            {live ? (
+              <circle r="1.1" fill={agent.color} className="net__spark"
+                      style={{ color: agent.color }}>
+                <animateMotion dur="1.1s" repeatCount="indefinite" path={d} />
+              </circle>
+            ) : null}
+          </g>
+        )
+      })}
+    </svg>
+  )
+
+  return side === 'left' ? (
+    <>
+      {cards}
+      {cables}
+    </>
+  ) : (
+    <>
+      {cables}
+      {cards}
+    </>
+  )
+}
+
+export function AgentNetwork({ style }: { style?: CSSProperties } = {}) {
+  const agents = useSession((s) => s.agents)
+  const tasks = useSession((s) => s.tasks)
+  const activeTaskId = useSession((s) => s.activeTaskId)
+  const setView = useSession((s) => s.setView)
+
+  // The callout above the Core only ever shows a task that is genuinely in
+  // flight right now — never the last-known task once it's settled, and
+  // never placeholder text. When nothing is running it simply isn't there.
+  const liveTask = tasks.find((t) => t.id === activeTaskId && LIVE_TASK.includes(t.status))
+
+  const left = railOf(LEFT_IDS)
+  const right = railOf(RIGHT_IDS)
+  const shown = [...left, ...right]
 
   const online = AGENTS.filter((a) => a.id !== 'paradox').length
   const shownLive = shown.some((a) => LIVE.includes(agents[a.id].state))
@@ -160,45 +286,7 @@ export function AgentNetwork({ style }: { style?: CSSProperties } = {}) {
       </header>
 
       <div className="net__body">
-        <div className="net__cards" ref={cardsRef}>
-          {shown.map((agent) => (
-            <AgentCard key={agent.id} def={agent} state={agents[agent.id].state} />
-          ))}
-        </div>
-
-        <svg ref={linksRef} className="net__links" viewBox={`0 0 ${wires.w} ${wires.h}`}>
-          {wires.ys.map((y, i) => {
-            const agent = shown[i]
-            if (!agent) return null
-            const live = LIVE.includes(agents[agent.id].state)
-            // Cable routing, as in the reference: a short run out of the
-            // card, one smooth S-bend across the gap, then a run into the
-            // core's edge. Each cable leaves its own column so the four
-            // bends stay separate instead of overlapping into a bundle.
-            const end = wires.h / 2 + (i - (wires.ys.length - 1) / 2) * 15
-            const x1 = 16 + i * 6
-            const x2 = wires.w - 14
-            const k = (x2 - x1) * 0.5
-            const d = `M 0 ${y} H ${x1} C ${x1 + k} ${y}, ${x2 - k} ${end}, ${x2} ${end}`
-              + ` H ${wires.w}`
-            return (
-              <g key={agent.id}>
-                <path d={d} className="net__link" data-live={live} stroke={agent.color}
-                      style={{ color: agent.color }} />
-                <circle cx={x1} cy={y} r="2.1" fill={agent.color}
-                        className="net__node" style={{ color: agent.color }} />
-                {/* A real signal reaching the Core, not decoration: this only
-                    exists while the backend has reported that agent as live. */}
-                {live ? (
-                  <circle r="1.1" fill={agent.color} className="net__spark"
-                          style={{ color: agent.color }}>
-                    <animateMotion dur="1.1s" repeatCount="indefinite" path={d} />
-                  </circle>
-                ) : null}
-              </g>
-            )
-          })}
-        </svg>
+        <Rail side="left" defs={left} agents={agents} />
 
         <div className="core" data-busy={busy}>
           <div className="core__head">
@@ -246,6 +334,8 @@ export function AgentNetwork({ style }: { style?: CSSProperties } = {}) {
             </span>
           </div>
         </div>
+
+        <Rail side="right" defs={right} agents={agents} />
       </div>
     </section>
   )
@@ -272,7 +362,15 @@ function AgentCard({ def, state }: { def: AgentDef; state: AgentState }) {
         <Icon size={17} />
       </span>
       <span className="acard2__text">
-        <span className="acard2__name">{def.role.replace(' Agent', '').toUpperCase()} AGENT</span>
+        {/* The role and the word AGENT are separate spans so the suffix can
+            stand down on a narrow card (see dashboard.css). Every card in a
+            panel titled AGENT NETWORK is an agent, so it is the one word
+            here that carries no information — and dropping it is what keeps
+            "COMMUNICATION" on a single readable line at 1366. */}
+        <span className="acard2__name">
+          <span className="acard2__role">{def.role.replace(' Agent', '').toUpperCase()}</span>
+          <span className="acard2__suffix"> AGENT</span>
+        </span>
         <span className="acard2__status">
           <span className="acard2__dot-wrap">
             <i className="acard2__pulse" data-live={live} />

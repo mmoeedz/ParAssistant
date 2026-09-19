@@ -5,10 +5,11 @@
 .town__head {
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
+  gap: var(--sp-2);
   padding: var(--sp-2) var(--sp-3);
   border-bottom: 1px solid var(--hairline);
   flex: none;
+  flex-wrap: wrap;
   color: var(--accent);
 }
 
@@ -16,15 +17,30 @@
   display: flex;
   gap: var(--sp-1);
   flex: 1;
+  min-width: 0;
+  /* Four tabs will not fit a phone-width panel, and dropping any of them
+     would hide a view. They scroll sideways instead — the one place in this
+     UI where horizontal scrolling is the right answer rather than a bug.
+     Snap points keep it from stopping mid-label. */
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+
+.town__tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .ttab2 {
-  padding: 6px 11px;
+  flex: none;
+  scroll-snap-align: start;
+  padding: 6px clamp(7px, 1.6cqi, 11px);
   border-radius: var(--r-sm);
   font-family: var(--font-hud);
-  font-size: 10.5px;
+  font-size: var(--hud-size);
   font-weight: 600;
   letter-spacing: 0.08em;
+  white-space: nowrap;
   color: var(--text-faint);
   border-bottom: 2px solid transparent;
   transition: color var(--fast) var(--ease), border-color var(--fast) var(--ease);
@@ -43,33 +59,64 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex: none;
   padding: 4px 10px;
   border-radius: var(--r-sm);
   border: 1px solid var(--border);
   font-family: var(--font-hud);
-  font-size: 10px;
+  font-size: var(--hud-size);
+  white-space: nowrap;
   color: var(--text-dim);
 }
 
+/* The viewport the town is drawn into.
+
+   It carries the artwork's own 790:350 ratio, which is what makes the panel
+   content-sized: given a width it asks for exactly the height the complete
+   room needs, no more. That replaces a min-height clamp that reserved space
+   by guesswork and a second rule undoing it inside the app shell.
+
+   When the stage is handed a definite height instead — it is a grid item in
+   the dashboard's centre column — the ratio steps aside, useFloorH draws the
+   floor deeper to use a taller box, and the room fits whatever is left.
+   Either way the whole town is visible and nothing is stretched. */
 .town__stage {
   position: relative;
   flex: 1;
+  aspect-ratio: 790 / 350;
   min-height: 0;
   overflow: hidden;
-  /* Shows either side of the room when the stage is wider than the floor may
-     be drawn — see useFloorBox. Matches the void the art itself is cut out of,
-     so the letterbox reads as the edge of the building rather than a gap. */
+  /* A size container, so the room below can read both of the stage's
+     dimensions and do the contain arithmetic itself. */
+  container-type: size;
+  /* The void the art itself is cut out of, so the space around the room
+     reads as the outside of the building rather than as a gap. */
   background: #070708;
 }
 
-/* The floor is drawn in SVG; the name tags (and the Map tab's floor-plan
-   pins) are positioned over it in percentages and sized in cqw, so they
-   scale with the room. The width is set inline by useFloorBox; left/right: 0
-   plus auto margins then centre whatever width it picked. */
+/* The room itself — a `contain` fit, in CSS alone.
+
+   --floor-h is the depth the floor is drawn at (see useFloorH): 350 at its
+   base shape, deeper when the stage is taller than that, so a tall panel
+   gets more office rather than a dead band above and below. Whatever depth
+   is in play, the width is the smaller of "as wide as the stage" and "as
+   wide as the stage is tall allows at this ratio", aspect-ratio derives the
+   height, and `inset: 0` with auto margins centres it. Nothing is cropped,
+   nothing is stretched — any axis with room to spare shows the void colour.
+
+   It has to be stated this way round. `width: 100%` + `max-height: 100%`
+   looks equivalent and is not: a specified width is not recomputed from the
+   ratio after a max-height clamp, which squashed the whole town flat on a
+   short wide stage.
+
+   cqw/cqh here resolve against .town__stage, the nearest ancestor container;
+   the cqw units used by the name tags inside resolve against this element. */
 .town__room {
   position: absolute;
   inset: 0;
-  margin-inline: auto;
+  margin: auto;
+  width: min(100cqw, calc(100cqh * 790 / var(--floor-h, 350)), var(--town-max, 100cqw));
+  aspect-ratio: 790 / var(--floor-h, 350);
   container-type: size;
 }
 
@@ -83,16 +130,21 @@
     box-shadow var(--med) var(--ease), opacity var(--med) var(--ease);
   display: flex;
   align-items: center;
-  gap: 0.9cqw;
-  height: 3.2cqw;
-  min-width: 10.8cqw;
-  padding: 0 1.3cqw;
-  border-radius: 1cqw;
+  /* Scales with the room, but never below the point where it stops being a
+     name and becomes a smudge — on a phone the room is ~350px wide and the
+     pure cqw sizing resolved to 6px type. max() keeps the tag proportional
+     wherever there is room to be proportional, and legible where there is
+     not. */
+  gap: max(3px, 0.9cqw);
+  height: max(14px, 3.2cqw);
+  min-width: max(44px, 10.8cqw);
+  padding: 0 max(4px, 1.3cqw);
+  border-radius: max(4px, 1cqw);
   border: 1px solid rgba(255, 255, 255, 0.16);
   background: rgba(16, 16, 19, 0.94);
   box-shadow: 0 0.25cqw 0.9cqw rgba(0, 0, 0, 0.6);
   color: #fff;
-  font-size: 1.62cqw;
+  font-size: max(8.5px, 1.62cqw);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -113,8 +165,8 @@
 }
 
 .seat__dot {
-  width: 1cqw;
-  height: 1cqw;
+  width: max(4px, 1cqw);
+  height: max(4px, 1cqw);
   flex: none;
   border-radius: var(--r-full);
   background: var(--tone);
@@ -201,9 +253,9 @@
 .tmark__avatar {
   display: grid;
   place-items: center;
-  width: 3.4cqw;
-  height: 4.8cqw;
-  border-radius: 0.7cqw;
+  width: max(18px, 3.4cqw);
+  height: max(25px, 4.8cqw);
+  border-radius: max(3px, 0.7cqw);
   background: color-mix(in srgb, var(--tone) 18%, rgba(10, 10, 13, 0.94));
   border: 0.1cqw solid color-mix(in srgb, var(--tone) 55%, transparent);
   box-shadow: 0 0 1.1cqw color-mix(in srgb, var(--tone) 40%, transparent);
@@ -229,24 +281,33 @@
   flex-direction: column;
   align-items: center;
   line-height: 1.2;
-  padding: 0.5cqw 1cqw;
-  border-radius: 0.8cqw;
+  padding: max(2px, 0.5cqw) max(4px, 1cqw);
+  border-radius: max(3px, 0.8cqw);
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(12, 12, 14, 0.9);
   white-space: nowrap;
 }
 
 .tmark__label b {
-  font-size: 1.45cqw;
+  font-size: max(8.5px, 1.45cqw);
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--tone);
 }
 
+/* The station name under the agent's. Two floored labels stacked on a small
+   floor plan overlap their neighbours, and this is the one that repeats
+   information the Map's own legend and the List tab already carry. */
 .tmark__label em {
   font-style: normal;
-  font-size: 1.2cqw;
+  font-size: max(7.5px, 1.2cqw);
   color: #8e8e96;
+}
+
+@container (max-width: 440px) {
+  .tmark__label em {
+    display: none;
+  }
 }
 
 /* ----------------------------------------------------------- character -- */
@@ -539,7 +600,7 @@
 .town__foot {
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
+  gap: var(--sp-2) var(--sp-3);
   padding: var(--sp-2) var(--sp-3);
   border-top: 1px solid var(--hairline);
   flex: none;
@@ -551,9 +612,19 @@
   align-items: center;
   gap: 6px;
   font-family: var(--font-hud);
-  font-size: 10px;
+  font-size: var(--hud-size);
   letter-spacing: 0.04em;
+  white-space: nowrap;
   color: var(--text-faint);
+}
+
+/* A phone-width panel cannot hold five readouts and a button on one row, and
+   wrapping them all produces four ragged lines. The two that restate what
+   the first one already says stand down instead. */
+@container panel (max-width: 460px) {
+  .tstat--secondary {
+    display: none;
+  }
 }
 
 .tstat[data-warn='true'] {
@@ -595,6 +666,7 @@
 .tbtn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
   margin-left: auto;
   padding: 5px 12px;
@@ -602,8 +674,9 @@
   border: 1px solid var(--border);
   background: var(--surface-2);
   font-family: var(--font-hud);
-  font-size: 10px;
+  font-size: var(--hud-size);
   letter-spacing: 0.08em;
+  white-space: nowrap;
   color: var(--text-dim);
   transition: border-color var(--fast) var(--ease), color var(--fast) var(--ease),
     background var(--fast) var(--ease);

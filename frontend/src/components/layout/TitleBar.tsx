@@ -52,9 +52,13 @@ export function TitleBar() {
 
       <div className="titlebar__spacer" />
 
-      <div className="titlebar__status" data-online={online} data-preview={preview}>
+      {/* The word drops out on a narrow window and the dot carries the state
+          on its own — so it keeps an accessible name rather than becoming an
+          unlabelled coloured circle. */}
+      <div className="titlebar__status" data-online={online} data-preview={preview}
+           title={status} aria-label={`Agent ${status.toLowerCase()}`}>
         <span className="titlebar__dot" />
-        {status}
+        <span className="titlebar__status-text">{status}</span>
       </div>
 
       {desktop ? (

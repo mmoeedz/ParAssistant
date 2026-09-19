@@ -11,7 +11,7 @@ import {
 } from '@/types/agents'
 import { TownFloor } from './TownFloor'
 import { AgentPortrait } from './AgentPortrait'
-import { FLOOR_W, WORKING, useFloorBox } from './TownStage'
+import { FLOOR_W, WORKING, stageStyle, useFloorH } from './TownStage'
 import './town.css'
 
 /**
@@ -42,9 +42,9 @@ export function TownMap({ maxWidth }: { maxWidth?: number } = {}) {
   const setAgentStation = useSession((s) => s.setAgentStation)
   const resetAgentStation = useSession((s) => s.resetAgentStation)
 
-  const stageRef = useRef<HTMLDivElement>(null)
   const roomRef = useRef<HTMLDivElement>(null)
-  const { floorH, width } = useFloorBox(stageRef, maxWidth)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const floorH = useFloorH(stageRef, maxWidth)
 
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<Partial<Record<AgentId, { x: number; y: number }>>>({})
@@ -131,8 +131,8 @@ export function TownMap({ maxWidth }: { maxWidth?: number } = {}) {
         )}
       </div>
 
-      <div className="town__stage" ref={stageRef}>
-        <div ref={roomRef} className="town__room" role="img" style={{ width: width || undefined }}
+      <div className="town__stage" ref={stageRef} style={stageStyle(floorH, maxWidth)}>
+        <div ref={roomRef} className="town__room" role="img"
              aria-label="Agent Town floor plan — which agent works at which station">
           <svg viewBox={`0 0 ${FLOOR_W} ${floorH}`} className="town__layer"
                preserveAspectRatio="none">
