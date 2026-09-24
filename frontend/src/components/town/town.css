@@ -58,9 +58,9 @@
 .town__floor {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(6px * var(--ui-scale));
   flex: none;
-  padding: 4px 10px;
+  padding: calc(4px * var(--ui-scale)) calc(10px * var(--ui-scale));
   border-radius: var(--r-sm);
   border: 1px solid var(--border);
   font-family: var(--font-hud);
@@ -304,7 +304,7 @@
   color: #8e8e96;
 }
 
-@container (max-width: 440px) {
+@container (max-width: 33.8em) {
   .tmark__label em {
     display: none;
   }
@@ -570,7 +570,7 @@
 
 .ch__z {
   font-family: var(--font-hud);
-  font-size: 9px;
+  font-size: calc(9px * var(--ui-scale));
   font-weight: 700;
   animation: zfloat 2.6s var(--ease) infinite;
 }
@@ -591,7 +591,7 @@
 
 .ch__says {
   font-family: var(--font-ui);
-  font-size: 9px;
+  font-size: calc(9px * var(--ui-scale));
   font-weight: 600;
 }
 
@@ -610,7 +610,7 @@
 .tstat {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(6px * var(--ui-scale));
   font-family: var(--font-hud);
   font-size: var(--hud-size);
   letter-spacing: 0.04em;
@@ -621,7 +621,7 @@
 /* A phone-width panel cannot hold five readouts and a button on one row, and
    wrapping them all produces four ragged lines. The two that restate what
    the first one already says stand down instead. */
-@container panel (max-width: 460px) {
+@container panel (max-width: 35.4em) {
   .tstat--secondary {
     display: none;
   }
@@ -632,8 +632,8 @@
 }
 
 .tstat__dot {
-  width: 6px;
-  height: 6px;
+  width: calc(6px * var(--ui-scale));
+  height: calc(6px * var(--ui-scale));
   border-radius: var(--r-full);
   background: var(--text-faint);
 }
@@ -649,8 +649,8 @@
 
 .tmeter {
   display: block;
-  width: 74px;
-  height: 4px;
+  width: calc(74px * var(--ui-scale));
+  height: calc(4px * var(--ui-scale));
   border-radius: var(--r-full);
   background: var(--surface-3);
   overflow: hidden;
@@ -667,9 +667,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: calc(5px * var(--ui-scale));
   margin-left: auto;
-  padding: 5px 12px;
+  padding: calc(5px * var(--ui-scale)) calc(12px * var(--ui-scale));
   border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: var(--surface-2);

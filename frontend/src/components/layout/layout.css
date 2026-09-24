@@ -42,8 +42,8 @@
    this only sizes it and adds the two CSS-driven breathing layers. */
 .orb {
   display: block;
-  width: clamp(28px, 2.4vw, 38px);
-  height: clamp(28px, 2.4vw, 38px);
+  width: clamp(28px, 2.4vw, calc(38px * var(--ui-scale)));
+  height: clamp(28px, 2.4vw, calc(38px * var(--ui-scale)));
   flex: none;
   overflow: visible;
 }
@@ -122,7 +122,7 @@
 
 /* Was #fff, which vanished against the light theme's white titlebar. */
 .titlebar__name {
-  font-size: clamp(14px, 1.1vw, 17.5px);
+  font-size: clamp(14px, 1.1vw, calc(17.5px * var(--ui-scale)));
   font-weight: 700;
   letter-spacing: 0.12em;
   color: var(--text);
@@ -137,12 +137,12 @@
 }
 
 .ttab {
-  height: 32px;
+  height: calc(32px * var(--ui-scale));
   padding: 0 clamp(var(--sp-2), 1.4vw, var(--sp-5));
   border-radius: var(--r-md);
   border: 1px solid transparent;
   font-family: var(--font-hud);
-  font-size: clamp(11px, 0.8vw, 12px);
+  font-size: clamp(11px, 0.8vw, calc(12px * var(--ui-scale)));
   font-weight: 700;
   letter-spacing: 0.08em;
   white-space: nowrap;
@@ -186,8 +186,8 @@
 }
 
 .titlebar__dot {
-  width: 7px;
-  height: 7px;
+  width: calc(7px * var(--ui-scale));
+  height: calc(7px * var(--ui-scale));
   border-radius: var(--r-full);
   background: currentColor;
   box-shadow: 0 0 8px currentColor;
@@ -202,8 +202,8 @@
 .titlebar__win button {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 28px;
+  width: calc(32px * var(--ui-scale));
+  height: calc(28px * var(--ui-scale));
   border-radius: var(--r-sm);
   color: var(--text-faint);
   transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
@@ -288,13 +288,15 @@
   }
 
   .workspace {
-    /* 21/49/30. The side columns keep floors because their content has
-       one — four usage rings plus their padding, and a console line worth
-       reading — while the centre is minmax(0, …) and absorbs the slack. */
+    /* 21/49/30 of the whole viewport — there is no width cap. The side
+       columns keep floors because their content has one (four usage rings,
+       a console line worth reading), stated in density-scaled pixels so a
+       4K panel's floors grow with its type; the centre is minmax(0, …) and
+       absorbs whatever is left. */
     grid-template-columns:
-      minmax(310px, 21fr)
+      minmax(calc(310px * var(--ui-scale)), 21fr)
       minmax(0, 49fr)
-      minmax(290px, 30fr);
+      minmax(calc(290px * var(--ui-scale)), 30fr);
     grid-template-areas: 'left center right';
     overflow: hidden;
   }
@@ -310,27 +312,32 @@
     overflow-x: hidden;
   }
 
-  /* Agent Network / Agent Town: a fixed 40/60 split, not a draggable one.
-     Grid rather than flex-basis percentages so the gap between them is
-     accounted for automatically instead of pushing the total past 100%.
-     Each side keeps an explicit floor — that is where Agent Network's four
-     agent cards actually stop fitting, and a deliberate minimum for Agent
-     Town (whose floor art rescales to anything, so it has no natural one).
-     `minmax(auto, …)` cannot derive the floor from content instead: .panel
-     is `overflow: hidden`, and a grid item's automatic minimum size only
-     comes from content when overflow is visible — under hidden it resolves
-     to 0, i.e. no floor. Pixel floors it is; 40/60 holds whenever both fit,
-     and the column scrolls rather than crushing a panel when they don't. */
-  /* Agent Network + Agent Town.
+  /* Every column ends flush with the bottom of the viewport. Each one has
+     a single panel that takes the remainder — the one whose content
+     genuinely benefits from more room:
 
-     The network takes exactly the height its own content resolves to (see
-     the Core's clamp in dashboard.css) — compact on a wide panel, taller
-     when it recomposes. Agent Town takes everything left in the column, so
-     the column is always filled edge to edge.
+       left    Today's Headlines: the feed shows every story it has rather
+               than four, and scrolls within itself if even that runs out
+               (see .panel--feed).
+       centre  Agent Town: draws a deeper floor (see useFloorH).
+       right   the console, sharing with the media player when one plays.
 
-     The town can use that height without cropping or stretching anything:
-     its floor art is drawn to grow deeper (see useFloorH), so a taller row
-     means more office at the same scale rather than a letterbox band.
+     The other panels keep their content height, so the extra space goes
+     to content rather than to padding inside a stretched card. */
+  .wcol--left > .panel--feed {
+    flex: 1 1 0;
+    min-height: calc(190px * var(--ui-scale));
+  }
+
+  .panel--feed > .panel__body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  /* Agent Network + Agent Town. The network takes exactly the height its
+     own content resolves to — compact on a wide panel, taller when it
+     recomposes — and the town takes everything left in the column.
 
      `min-content` has to be stated explicitly rather than left to `auto`: a
      grid item's automatic minimum size only comes from its content when
@@ -343,15 +350,36 @@
   }
 }
 
-/* ---- ultrawide: more air between the columns and around them, rather
-   than more column. The cap lives on --shell-max in tokens.css. ------- */
-@media (min-width: 2000px) {
+/* ---- 32:9 super-ultrawide (5120x1440, 3840x1080): the right column is
+   ~1500px wide but no taller than a laptop's, so stacking the media player
+   under the console left a wide, shallow player with its artwork adrift in
+   the middle. Side by side, both run the full height. ------------------ */
+@media (min-width: 1100px) and (min-height: 700px) and (min-aspect-ratio: 3 / 1) {
+  /* The centre takes less of a 32:9 screen than of a 16:9 one. Agent Town
+     is the widest thing in it, and it cannot usefully be wider than its
+     artwork's ratio allows at this height — at 49% of 5120 the room left
+     ~670px of letterbox beside itself. That width is worth more to the side
+     columns, where the console and player sit side by side and the left
+     rail's map and feed widen. */
   .workspace {
-    gap: clamp(16px, 1.1vw, 28px);
+    grid-template-columns:
+      minmax(calc(310px * var(--ui-scale)), 27fr)
+      minmax(0, 37fr)
+      minmax(calc(290px * var(--ui-scale)), 36fr);
   }
 
-  .wcol {
-    gap: var(--sp-3);
+  .wcol--right {
+    flex-direction: row;
+  }
+
+  /* Doubled class: dashboard.css loads after this file and sets the
+     stacked 6:4 ratio at the same specificity. */
+  .wcol.wcol--right > .dock {
+    flex: 2 1 0;
+  }
+
+  .wcol.wcol--right > .media {
+    flex: 1 1 0;
   }
 }
 
@@ -387,8 +415,8 @@
 .panel::after {
   content: '';
   position: absolute;
-  width: 8px;
-  height: 8px;
+  width: calc(8px * var(--ui-scale));
+  height: calc(8px * var(--ui-scale));
   border: 1px solid var(--border-strong);
   pointer-events: none;
   z-index: 2;
@@ -413,7 +441,7 @@
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: 8px clamp(var(--sp-3), 2.5cqi, var(--sp-4));
+  padding: calc(8px * var(--ui-scale)) clamp(var(--sp-3), 2.5cqi, var(--sp-4));
   flex: none;
   border-bottom: 1px solid var(--hairline);
   color: var(--text-faint);
@@ -440,7 +468,7 @@
 /* A panel narrow enough that its own title would push the action button off
    the end tightens the tracking before it truncates — these are short,
    all-caps labels and 0.08em of it is decoration, not legibility. */
-@container panel (max-width: 300px) {
+@container panel (max-width: 23.1em) {
   .panel__head .section-title {
     letter-spacing: 0.03em;
   }
@@ -454,9 +482,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: calc(5px * var(--ui-scale));
   flex: none;
-  min-height: 20px;
+  min-height: calc(20px * var(--ui-scale));
   font-family: var(--font-hud);
   font-size: var(--hud-size);
   letter-spacing: 0.1em;
@@ -483,16 +511,23 @@
 
 .panel__count {
   font-family: var(--font-hud);
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-scale));
   color: var(--text-faint);
 }
 
 /* ---------------------------------------------------------- plain views -- */
 
-/* Prose-shaped pages. A capped measure is what stops a 3440px monitor
-   turning a paragraph into a single unreadable line, and the auto margins
-   are what keep the result centred rather than pinned to the left edge of a
-   very wide screen. */
+/* The SYSTEM tab's pages: capabilities, tasks, settings.
+
+   These used to sit in a single 980px column centred in the viewport — right
+   for a paragraph, but on a 3840px screen it left three quarters of the pane
+   blank. Now the page is a grid, and its sections (.group) flow into as
+   many columns as fit at a comfortable card width: one on a laptop, two at
+   1920, three or four at 4K. Headings, intros and anything that isn't a
+   section span the full width.
+
+   Line length is still protected where it matters — on the paragraphs
+   themselves (.view__head p, .notes), not by starving the page of width. */
 .view {
   min-height: 0;
   padding: clamp(var(--sp-4), 2.4vw, var(--sp-8))
@@ -500,12 +535,27 @@
     clamp(var(--sp-6), 3vw, var(--sp-10));
 }
 
+/* Flex-wrap rather than an auto-fit grid. The full-width heading spans
+   every grid track, which stops auto-fit from ever collapsing the empty
+   ones — three sections on a 4K screen sat beside a fourth, blank column.
+   With wrapping flex there are no tracks to leave empty: each row's
+   sections share its full width, and any section that wraps alone takes
+   the row. */
 .view__inner {
-  width: min(100%, var(--read-max));
-  margin-inline: auto;
+  width: 100%;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: clamp(var(--sp-4), 1.4vw, var(--sp-6));
+}
+
+.view__inner > * {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.view__inner > .group {
+  flex: 1 1 calc(460px * var(--ui-scale));
 }
 
 .view__head h2 {
@@ -518,7 +568,7 @@
   margin-top: var(--sp-2);
   color: var(--text-dim);
   font-size: var(--text-sm);
-  max-width: 70ch;
+  max-width: var(--read-max);
 }
 
 /* --------------------------------------------------------- preview bar -- */

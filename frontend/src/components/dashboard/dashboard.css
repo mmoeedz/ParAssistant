@@ -15,12 +15,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: calc(3px * var(--ui-scale));
 }
 
 .ring__svg {
   width: 100%;
-  max-width: 84px;
+  max-width: calc(84px * var(--ui-scale));
   transform: rotate(-90deg);
 }
 
@@ -55,7 +55,7 @@
    desktop left rail and full-bleed on a phone, and the number in the middle
    of the ring has to stay proportional to the ring in both. */
 .ring__pct {
-  font-size: clamp(12px, 5.2cqi, 18px);
+  font-size: clamp(12px, 5.2cqi, calc(18px * var(--ui-scale)));
   font-weight: 700;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -64,7 +64,7 @@
 
 .ring__name {
   font-family: var(--font-hud);
-  font-size: clamp(10px, 3.6cqi, 13px);
+  font-size: clamp(10px, 3.6cqi, calc(13px * var(--ui-scale)));
   letter-spacing: 0.08em;
   color: var(--text-dim);
 }
@@ -72,7 +72,7 @@
 .spark {
   display: block;
   width: 100%;
-  height: 28px;
+  height: calc(28px * var(--ui-scale));
 }
 
 .spark--empty {
@@ -106,9 +106,9 @@
 .mgrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
+  gap: calc(8px * var(--ui-scale));
+  margin-top: calc(10px * var(--ui-scale));
+  padding-top: calc(10px * var(--ui-scale));
   border-top: 1px solid var(--hairline);
 }
 
@@ -116,13 +116,13 @@
    unit and a trend graph — measured against the largest type this scale
    produces, not the smallest, so the row does not break on the ultrawide it
    was widened for. */
-@container panel (min-width: 520px) {
+@container panel (min-width: 40em) {
   .mgrid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
-@container panel (max-width: 230px) {
+@container panel (max-width: 17.7em) {
   .mgrid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -130,7 +130,7 @@
 
 .mcard {
   min-width: 0;
-  padding: 9px 10px 8px;
+  padding: calc(9px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(8px * var(--ui-scale));
   border-radius: var(--r-md);
   border: 1px solid var(--border);
   background: var(--surface-2);
@@ -145,7 +145,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: calc(8px * var(--ui-scale));
 }
 
 /* Plain, not tinted to the metric — only the delta below carries colour,
@@ -154,7 +154,7 @@
 .mcard__value {
   min-width: 0;
   font-family: var(--font-hud);
-  font-size: clamp(15px, 4.4cqi, 19px);
+  font-size: clamp(15px, 4.4cqi, calc(19px * var(--ui-scale)));
   font-weight: 700;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -163,8 +163,8 @@
 }
 
 .mcard__unit {
-  margin-left: 3px;
-  font-size: 11px;
+  margin-left: calc(3px * var(--ui-scale));
+  font-size: calc(11px * var(--ui-scale));
   font-weight: 600;
   color: var(--text-dim);
 }
@@ -181,13 +181,13 @@
    overflow: hidden. */
 .mspark {
   display: block;
-  width: 44px;
-  height: 22px;
-  flex: 0 1 44px;
-  min-width: 24px;
+  width: calc(44px * var(--ui-scale));
+  height: calc(22px * var(--ui-scale));
+  flex: 0 1 calc(44px * var(--ui-scale));
+  min-width: calc(24px * var(--ui-scale));
 }
 
-@container panel (max-width: 250px) {
+@container panel (max-width: 19.2em) {
   .mspark {
     display: none;
   }
@@ -209,9 +209,9 @@
 .mcard__delta {
   display: flex;
   align-items: center;
-  gap: 3px;
-  margin-top: 5px;
-  font-size: 11px;
+  gap: calc(3px * var(--ui-scale));
+  margin-top: calc(5px * var(--ui-scale));
+  font-size: calc(11px * var(--ui-scale));
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -239,7 +239,7 @@
   align-items: center;
   gap: var(--sp-3);
   width: 100%;
-  padding: 10px var(--sp-3);
+  padding: calc(10px * var(--ui-scale)) var(--sp-3);
   border-radius: var(--r-md);
   border: 1px solid var(--border);
   background: var(--surface-2);
@@ -254,8 +254,8 @@
 .taskcard__icon {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: calc(30px * var(--ui-scale));
+  height: calc(30px * var(--ui-scale));
   flex: none;
   border-radius: var(--r-full);
   border: 1px solid var(--accent-line);
@@ -280,7 +280,7 @@
 .taskcard__goal {
   display: block;
   font-weight: 600;
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--ui-scale));
   color: var(--text);
   line-height: 1.35;
   overflow: hidden;
@@ -293,18 +293,18 @@
 .taskcard__who {
   display: block;
   margin-top: 2px;
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale));
   font-weight: 500;
   color: var(--text-dim);
 }
 
 .taskcard__pill {
   flex: none;
-  padding: 5px 11px;
+  padding: calc(5px * var(--ui-scale)) calc(11px * var(--ui-scale));
   border-radius: var(--r-md);
   background: var(--accent);
   color: #04120f;
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale));
   font-weight: 600;
   white-space: nowrap;
 }
@@ -324,13 +324,13 @@
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  margin-top: 10px;
+  margin-top: calc(10px * var(--ui-scale));
 }
 
 .taskcard__bar {
   flex: 1;
   min-width: 0;
-  height: 6px;
+  height: calc(6px * var(--ui-scale));
   border-radius: var(--r-full);
   background: var(--surface-3);
   overflow: hidden;
@@ -338,7 +338,7 @@
 
 .taskcard__bar span {
   display: block;
-  height: 6px;
+  height: calc(6px * var(--ui-scale));
   border-radius: var(--r-full);
   background: var(--accent);
   box-shadow: var(--accent-glow);
@@ -352,7 +352,7 @@
 .taskprog b {
   flex: none;
   font-family: var(--font-hud);
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale));
   font-weight: 600;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
@@ -364,10 +364,16 @@
   padding: var(--sp-1) 0 var(--sp-2);
 }
 
+/* Width-driven, so it fills its panel — but capped by the viewport's
+   height too. On a 32:9 screen the left rail is ~1300px wide and the map's
+   natural height at that width pushed the column past the bottom of the
+   screen; the cap keeps it proportionate to the space that actually exists
+   vertically, and the default `meet` fit centres it. */
 .map__svg {
   display: block;
   width: 100%;
   height: auto;
+  max-height: 31vh;
 }
 
 .map__dot {
@@ -455,11 +461,11 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--sp-2);
-  padding-top: 10px;
+  padding-top: calc(10px * var(--ui-scale));
   border-top: 1px solid var(--hairline);
 }
 
-@container panel (max-width: 300px) {
+@container panel (max-width: 23.1em) {
   .stats4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--sp-2) var(--sp-3);
@@ -486,8 +492,8 @@
 }
 
 .live-dot {
-  width: 6px;
-  height: 6px;
+  width: calc(6px * var(--ui-scale));
+  height: calc(6px * var(--ui-scale));
   border-radius: var(--r-full);
   background: var(--success);
   box-shadow: 0 0 6px var(--success);
@@ -511,7 +517,7 @@
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: 5px 0;
+  padding: calc(5px * var(--ui-scale)) 0;
   color: var(--text-dim);
   text-decoration: none;
   font-size: var(--text-sm);
@@ -523,8 +529,8 @@
 }
 
 .news__dot {
-  width: 6px;
-  height: 6px;
+  width: calc(6px * var(--ui-scale));
+  height: calc(6px * var(--ui-scale));
   border-radius: var(--r-full);
   flex: none;
 }
@@ -584,8 +590,8 @@
    and lets it grow when it recomposes. ---------------------------------- */
 
 .net__body {
-  --net-card: clamp(168px, 22cqi, 264px);
-  --net-cable: clamp(20px, 6cqi, 88px);
+  --net-card: clamp(calc(168px * var(--ui-scale)), 22cqi, calc(264px * var(--ui-scale)));
+  --net-cable: clamp(20px, 6cqi, calc(88px * var(--ui-scale)));
 
   position: relative;
   display: grid;
@@ -616,7 +622,7 @@
 /* Tall enough for the 36px icon and two lines of text, growing to share
    whatever height the panel actually has. */
 .net__cards > * {
-  min-height: 52px;
+  min-height: calc(52px * var(--ui-scale));
 }
 
 .net__cards--left {
@@ -701,8 +707,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: clamp(7px, 5cqi, 11px);
-  padding: 9px clamp(8px, 5cqi, 11px);
+  gap: clamp(7px, 5cqi, calc(11px * var(--ui-scale)));
+  padding: calc(9px * var(--ui-scale)) clamp(8px, 5cqi, calc(11px * var(--ui-scale)));
   /* The card asks about its own width, not the panel's: the two rails and
      the roster grid give it quite different widths for the same panel. */
   container-type: inline-size;
@@ -749,8 +755,8 @@
 .acard2__icon {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: calc(36px * var(--ui-scale));
+  height: calc(36px * var(--ui-scale));
   flex: none;
   border-radius: var(--r-full);
   border: 1.5px solid color-mix(in srgb, var(--tone) 75%, transparent);
@@ -789,15 +795,15 @@
 .acard2__status {
   display: flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 3px;
+  gap: calc(5px * var(--ui-scale));
+  margin-top: calc(3px * var(--ui-scale));
   font-size: var(--text-xs);
   color: var(--tone);
 }
 
 .acard2__dot {
-  width: 5px;
-  height: 5px;
+  width: calc(5px * var(--ui-scale));
+  height: calc(5px * var(--ui-scale));
   border-radius: var(--r-full);
   background: var(--tone);
   box-shadow: 0 0 6px var(--tone);
@@ -814,7 +820,7 @@
   display: flex;
   align-items: flex-end;
   gap: 2px;
-  height: 13px;
+  height: calc(13px * var(--ui-scale));
   flex: none;
   opacity: 0.5;
 }
@@ -839,14 +845,14 @@
    and the icon can give up four pixels — together that is about 30px of
    width handed back to the agent's name, which is the one thing on this
    card that cannot be inferred from anything else. */
-@container acard (max-width: 190px) {
+@container acard (max-width: 14.6em) {
   .acard2__act {
     display: none;
   }
 
   .acard2__icon {
-    width: 32px;
-    height: 32px;
+    width: calc(32px * var(--ui-scale));
+    height: calc(32px * var(--ui-scale));
   }
 
   .acard2__suffix {
@@ -875,8 +881,8 @@
   right: -3px;
   top: 50%;
   transform: translateY(-50%);
-  width: 6px;
-  height: 6px;
+  width: calc(6px * var(--ui-scale));
+  height: calc(6px * var(--ui-scale));
   border-radius: var(--r-full);
   background: var(--tone);
   opacity: 0.85;
@@ -982,7 +988,7 @@
      this, so this figure is what the panel's height resolves to — which is
      why the network is compact by construction rather than by being told
      to be. */
-  min-height: clamp(172px, 21cqi, 300px);
+  min-height: clamp(calc(172px * var(--ui-scale)), 19cqi, calc(300px * var(--ui-scale)));
   isolation: isolate;
   /* The header inside scales off this panel's own width, not the viewport's —
      how wide it gets depends on the whole three-column layout, so a viewport
@@ -1017,7 +1023,7 @@
 
 .core__title {
   min-width: 0;
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-scale));
   font-weight: 700;
   letter-spacing: 0.1em;
   white-space: nowrap;
@@ -1066,8 +1072,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 10px;
-  margin-top: 5px;
+  height: calc(10px * var(--ui-scale));
+  margin-top: calc(5px * var(--ui-scale));
 }
 
 /* The unlit rail, and the lit section over it. Both are inset by half a dot
@@ -1095,8 +1101,8 @@
 
 .core__step-dot {
   position: relative;
-  width: 6px;
-  height: 6px;
+  width: calc(6px * var(--ui-scale));
+  height: calc(6px * var(--ui-scale));
   flex: none;
   border-radius: var(--r-full);
   background: var(--border-strong);
@@ -1136,7 +1142,7 @@
    same words were 12% wider, and they overflowed the panel. */
 @container (max-width: 36em) {
   .core__title {
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale));
     letter-spacing: 0.05em;
   }
 
@@ -1145,7 +1151,7 @@
   }
 
   .core__steps {
-    width: 82px;
+    width: calc(82px * var(--ui-scale));
   }
 
   .core__steps-rail {
@@ -1172,9 +1178,9 @@
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(6px * var(--ui-scale));
   max-width: min(72%, 230px);
-  padding: 5px 9px;
+  padding: calc(5px * var(--ui-scale)) calc(9px * var(--ui-scale));
   border-radius: var(--r-md);
   border: 1px solid var(--accent-line);
   background: color-mix(in srgb, var(--surface-solid) 82%, transparent);
@@ -1188,8 +1194,8 @@
   position: absolute;
   left: 50%;
   bottom: -4px;
-  width: 7px;
-  height: 7px;
+  width: calc(7px * var(--ui-scale));
+  height: calc(7px * var(--ui-scale));
   margin-left: -4px;
   border-right: 1px solid var(--accent-line);
   border-bottom: 1px solid var(--accent-line);
@@ -1245,8 +1251,8 @@
 .core__pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: calc(6px * var(--ui-scale));
+  padding: calc(4px * var(--ui-scale)) calc(10px * var(--ui-scale));
   border-radius: var(--r-md);
   border: 1px solid var(--accent-line);
   background: color-mix(in srgb, var(--surface-solid) 70%, transparent);
@@ -1259,8 +1265,8 @@
 }
 
 .core__pill-dot {
-  width: 5px;
-  height: 5px;
+  width: calc(5px * var(--ui-scale));
+  height: calc(5px * var(--ui-scale));
   border-radius: var(--r-full);
   background: var(--text-faint);
   flex: none;
@@ -1315,8 +1321,8 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: 10px;
-  height: 10px;
+  width: calc(10px * var(--ui-scale));
+  height: calc(10px * var(--ui-scale));
   flex: none;
 }
 
@@ -1392,9 +1398,9 @@
 }
 
 /* Tracking is decoration on a three-word tab strip; the words are not. */
-@container panel (max-width: 400px) {
+@container panel (max-width: 30.8em) {
   .dtab {
-    padding: 6px 7px;
+    padding: calc(6px * var(--ui-scale)) calc(7px * var(--ui-scale));
     letter-spacing: 0.03em;
   }
 }
@@ -1416,8 +1422,8 @@
 .iconbtn {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: calc(26px * var(--ui-scale));
+  height: calc(26px * var(--ui-scale));
   border-radius: var(--r-sm);
   color: var(--text-faint);
   transition: color var(--fast) var(--ease), background var(--fast) var(--ease);
@@ -1435,13 +1441,13 @@
 
 .dock__search {
   margin: var(--sp-2) var(--sp-3) 0;
-  height: 28px;
+  height: calc(28px * var(--ui-scale));
   padding: 0 var(--sp-2);
   border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: var(--surface-2);
   font-family: var(--font-hud);
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale));
   color: var(--text);
 }
 
@@ -1480,7 +1486,7 @@
 .cgroup__title {
   color: var(--accent);
   font-weight: 700;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   letter-spacing: 0.12em;
   margin-bottom: var(--sp-2);
 }
@@ -1488,7 +1494,7 @@
 .console__row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 7px;
+  gap: 0 calc(7px * var(--ui-scale));
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -1498,7 +1504,7 @@
    150px and a one-line log entry became eight. Below that width the message
    takes its own full-width line under the prefix instead — the same reading
    order, just wrapped rather than squeezed into a gutter. */
-@container panel (max-width: 420px) {
+@container panel (max-width: 32.3em) {
   .console__text {
     flex-basis: 100%;
   }
@@ -1527,7 +1533,7 @@
 .console__repeat {
   flex: none;
   align-self: center;
-  padding: 0 5px;
+  padding: 0 calc(5px * var(--ui-scale));
   border-radius: var(--r-full);
   border: 1px solid var(--border);
   font-size: var(--text-xs);
@@ -1551,8 +1557,8 @@
 
 .logline {
   display: flex;
-  gap: 7px;
-  padding: 3px 0;
+  gap: calc(7px * var(--ui-scale));
+  padding: calc(3px * var(--ui-scale)) 0;
   align-items: baseline;
 }
 
@@ -1586,13 +1592,13 @@
   display: flex;
   align-items: flex-start;
   gap: var(--sp-2);
-  padding: 7px 0;
+  padding: calc(7px * var(--ui-scale)) 0;
   border-top: 1px solid var(--hairline);
 }
 
 .memrow__kind {
   flex: none;
-  width: 66px;
+  width: calc(66px * var(--ui-scale));
   max-width: 24cqi;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1638,7 +1644,7 @@
    the page scrolls past it. The proportional split below only applies in
    the app shell, where there is a fixed column height to divide up. */
 .media {
-  min-height: 190px;
+  min-height: calc(190px * var(--ui-scale));
 }
 
 /* The console keeps the larger share of the right-hand column; the player
@@ -1722,7 +1728,7 @@
   width: auto;
   aspect-ratio: 1;
   flex: 0 1 auto;
-  min-height: 56px;
+  min-height: calc(56px * var(--ui-scale));
   border-radius: var(--r-md);
   border: 1px solid var(--border);
   background: var(--surface-3);
@@ -1758,7 +1764,7 @@
 .media__title {
   max-width: 100%;
   margin-top: 2px;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   font-weight: 700;
   color: var(--text);
   text-align: center;
@@ -1769,7 +1775,7 @@
 
 .media__artist {
   max-width: 100%;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   color: var(--text-dim);
   text-align: center;
   white-space: nowrap;
@@ -1800,7 +1806,7 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  height: 14px;
+  height: calc(14px * var(--ui-scale));
   touch-action: none;
 }
 
@@ -1810,7 +1816,7 @@
 
 .media__bar {
   width: 100%;
-  height: 4px;
+  height: calc(4px * var(--ui-scale));
   border-radius: var(--r-full);
   background: var(--surface-3);
   overflow: hidden;
@@ -1819,7 +1825,7 @@
 
 .media__scrub[data-seekable='true']:hover .media__bar,
 .media__scrub[data-dragging='true'] .media__bar {
-  height: 6px;
+  height: calc(6px * var(--ui-scale));
 }
 
 /* Painted every animation frame from the player's clock, so it carries no
@@ -1837,8 +1843,8 @@
   position: absolute;
   top: 50%;
   left: 0;
-  width: 10px;
-  height: 10px;
+  width: calc(10px * var(--ui-scale));
+  height: calc(10px * var(--ui-scale));
   border-radius: var(--r-full);
   background: var(--accent);
   box-shadow: var(--accent-glow);
@@ -1864,8 +1870,8 @@
 .media__btn {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: calc(30px * var(--ui-scale));
+  height: calc(30px * var(--ui-scale));
   border-radius: var(--r-full);
   color: var(--text-dim);
   transition: color var(--fast) var(--ease), background var(--fast) var(--ease),
@@ -1887,8 +1893,8 @@
 }
 
 .media__btn--main {
-  width: 42px;
-  height: 42px;
+  width: calc(42px * var(--ui-scale));
+  height: calc(42px * var(--ui-scale));
   border: 1px solid var(--accent-line);
   color: var(--bg-deep);
   background: var(--accent);

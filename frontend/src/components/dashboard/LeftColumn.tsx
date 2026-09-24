@@ -464,18 +464,43 @@ function ago(ts: number | null): string {
 
 const SOURCE_TONE = ['var(--warn)', 'var(--danger)', 'var(--accent)', 'var(--a-luna)']
 
+/**
+ * Matches the workspace's app-shell condition in layout.css. A media-query
+ * listener, not a resize listener: it fires once when the condition flips,
+ * not on every pixel of a drag.
+ */
+const APP_SHELL = '(min-width: 1100px) and (min-height: 700px)'
+
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches)
+  useEffect(() => {
+    const list = window.matchMedia(query)
+    const onChange = () => setMatches(list.matches)
+    onChange()
+    list.addEventListener('change', onChange)
+    return () => list.removeEventListener('change', onChange)
+  }, [query])
+  return matches
+}
+
 export function Headlines() {
   const items = useSession((s) => s.headlines)
   const connection = useSession((s) => s.connection)
   const [expanded, setExpanded] = useState(false)
-  const shown = expanded ? items.slice(0, 12) : items.slice(0, 4)
+  // In the app shell this panel takes whatever height the left column has
+  // left (see .panel--feed), so it lists every story it has and scrolls
+  // within itself if that runs out — four stories and a blank panel below
+  // them was the largest empty area on a 4K screen. In document flow the
+  // page scrolls instead, so it keeps the short list and the toggle.
+  const fills = useMediaQuery(APP_SHELL)
+  const shown = expanded || fills ? items.slice(0, 12) : items.slice(0, 4)
 
   return (
-    <section className="panel">
+    <section className="panel panel--feed">
       <header className="panel__head">
         <Newspaper size={14} />
         <span className="section-title">TODAY'S HEADLINES</span>
-        {items.length > 4 ? (
+        {items.length > 4 && !fills ? (
           <button type="button" className="panel__action" onClick={() => setExpanded(!expanded)}>
             {expanded ? 'Less' : 'See All'} <ArrowRight size={11} />
           </button>

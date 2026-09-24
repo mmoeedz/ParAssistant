@@ -1,0 +1,913 @@
+/* ------------------------------------------------------------ boot -- */
+
+/* The boot sequence is always the dark cinematic version, whichever theme
+   the app itself is in — it is a title card, not a page — so it carries its
+   own palette rather than reading the theme tokens. The cyan is Paradox's
+   own accent, so the handover into the dashboard reads as one product. */
+.boot {
+  --c: #00e8f1;
+  --c-hi: #8af6fb;
+  --c-mid: rgba(0, 232, 241, 0.55);
+  --c-dim: rgba(0, 232, 241, 0.28);
+  --c-faint: rgba(0, 232, 241, 0.1);
+  --line: rgba(170, 225, 232, 0.32);
+  --txt: #bfe9ee;
+  --txt-dim: rgba(191, 233, 238, 0.5);
+  --red: #ff4d5e;
+  --ok: #4ade80;
+  --warn: #ffa04d;
+  --mono: 'Cascadia Mono', 'Cascadia Code', 'JetBrains Mono', ui-monospace, Consolas, monospace;
+
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  grid-template-columns: minmax(240px, 0.85fr) minmax(0, 2.4fr) minmax(160px, 0.5fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'left center right'
+    'foot foot foot';
+  gap: clamp(12px, 2vw, 36px);
+  padding: clamp(16px, 3.2vh, 48px) clamp(16px, 3vw, 56px) clamp(12px, 2vh, 24px);
+  overflow: hidden;
+  color: var(--txt);
+  background:
+    radial-gradient(70% 60% at 55% 42%, rgba(0, 232, 241, 0.07), transparent 70%),
+    #03060a;
+  font-family: var(--mono);
+  cursor: pointer;
+  user-select: none;
+  /* The exit: the whole card collapses to a horizontal line through its
+     middle and goes out, like a CRT switching over. */
+  clip-path: inset(0 0 0 0);
+  transition:
+    clip-path 720ms cubic-bezier(0.7, 0, 0.25, 1),
+    filter 720ms ease,
+    opacity 260ms ease 460ms;
+}
+
+.boot[data-phase='exit'] {
+  clip-path: inset(49.85% 0 49.85% 0);
+  filter: brightness(2.2) saturate(1.4);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Blueprint grid and a slow scan band, behind everything. */
+.boot__grid,
+.boot__scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.boot__grid {
+  background-image: linear-gradient(var(--c-faint) 1px, transparent 1px),
+    linear-gradient(90deg, var(--c-faint) 1px, transparent 1px);
+  background-size: 44px 44px;
+  opacity: 0.35;
+  mask-image: radial-gradient(90% 80% at 50% 45%, #000 30%, transparent 85%);
+}
+
+.boot__scan {
+  background: linear-gradient(180deg, transparent, rgba(0, 232, 241, 0.06) 48%, transparent 52%);
+  background-size: 100% 240%;
+  animation: boot-scan 3.4s linear infinite;
+}
+
+@keyframes boot-scan {
+  from { background-position: 0 120%; }
+  to { background-position: 0 -120%; }
+}
+
+/* ----------------------------------------------------- entrances -- */
+
+/* Everything given a --d stagger (see d() in BootScreen) fades and lifts
+   in on its own beat, which is what makes the card assemble itself rather
+   than simply appear. */
+.boot [style*='--d'] {
+  animation: boot-in 700ms cubic-bezier(0.2, 0.7, 0.2, 1) var(--d) both;
+}
+
+@keyframes boot-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(3px);
+  }
+}
+
+/* Frame strokes draw themselves along their length instead. */
+.boot .boot__draw {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 2400;
+  stroke-dashoffset: 2400;
+  animation: boot-draw 1.6s cubic-bezier(0.6, 0, 0.2, 1) var(--d) forwards;
+}
+
+.boot__draw--dim {
+  stroke: var(--c-dim);
+  stroke-width: 3;
+}
+
+@keyframes boot-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* ------------------------------------------------------- shared -- */
+
+.boot__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--txt);
+}
+
+.boot__label--right {
+  align-self: flex-end;
+}
+
+.boot__bar {
+  display: block;
+  height: 8px;
+  min-width: 0;
+}
+
+.boot__bar--solid {
+  flex: 0 0 26%;
+  background: rgba(191, 233, 238, 0.35);
+}
+
+.boot__bar--hatch {
+  flex: 1;
+  background: repeating-linear-gradient(115deg, rgba(191, 233, 238, 0.45) 0 3px, transparent 3px 7px);
+}
+
+.boot__bar--wide {
+  width: 100%;
+  flex: none;
+}
+
+.boot__bar--mid {
+  flex: 0 1 220px;
+}
+
+.boot__blocks {
+  display: flex;
+  gap: 5px;
+}
+
+.boot__blocks b {
+  width: 9px;
+  height: 11px;
+  background: rgba(191, 233, 238, 0.55);
+}
+
+.boot__blocks b:nth-child(3) {
+  opacity: 0.35;
+}
+
+.boot__play {
+  font-size: 12px;
+  color: var(--txt);
+}
+
+/* Rings spin on their own centres at different rates and directions. */
+.boot__spin {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: boot-spin 18s linear infinite;
+}
+
+.boot__spin--slow { animation-duration: 26s; }
+.boot__spin--mid { animation-duration: 9s; }
+.boot__spin--fast { animation-duration: 6s; animation-direction: reverse; }
+.boot__spin--rev { animation-duration: 40s; animation-direction: reverse; }
+.boot__spin--sweep { animation-duration: 3.2s; }
+
+@keyframes boot-spin {
+  to { transform: rotate(360deg); }
+}
+
+.boot__ring {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.boot__arc {
+  fill: none;
+  stroke: var(--c);
+  stroke-width: 5;
+  filter: drop-shadow(0 0 4px var(--c-mid));
+}
+
+.boot__arc--thin {
+  stroke-width: 2;
+  stroke: var(--c-mid);
+}
+
+.boot__arc--red {
+  stroke: var(--red);
+  stroke-width: 4;
+  stroke-dasharray: 3 3;
+  filter: drop-shadow(0 0 4px rgba(255, 77, 94, 0.6));
+}
+
+.boot__ticks {
+  fill: none;
+  stroke: rgba(191, 233, 238, 0.7);
+  stroke-width: 9;
+  stroke-dasharray: 1 3;
+}
+
+.boot__ticks--small {
+  stroke-width: 6;
+  stroke-dasharray: 1 2.4;
+}
+
+.boot__thin {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.boot__thin--bright {
+  stroke: var(--c-mid);
+  stroke-width: 2;
+}
+
+.boot__cross {
+  stroke: var(--line);
+  stroke-width: 0.8;
+}
+
+.boot__sweep {
+  stroke: var(--c);
+  stroke-width: 1.2;
+  opacity: 0.7;
+}
+
+.boot__dot {
+  fill: var(--c-hi);
+}
+
+.boot__wedge {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.boot__ring--small[data-variant='red'] .boot__arc:not(.boot__arc--red) {
+  stroke: rgba(191, 233, 238, 0.55);
+  filter: none;
+}
+
+.boot__gauges {
+  display: flex;
+  justify-content: space-between;
+  gap: clamp(4px, 0.6vw, 10px);
+}
+
+.boot__gauge {
+  width: clamp(26px, 2.5vw, 38px);
+  height: auto;
+  flex: none;
+}
+
+.boot__gauge-track {
+  fill: rgba(191, 233, 238, 0.06);
+  stroke: rgba(191, 233, 238, 0.14);
+  stroke-width: 3.5;
+}
+
+.boot__gauge-val {
+  fill: none;
+  stroke: #e6fbfd;
+  stroke-width: 3.5;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+.boot__gauge text {
+  font-family: var(--mono);
+  font-size: 7px;
+  font-weight: 700;
+  fill: var(--txt);
+}
+
+.boot__readout {
+  font-size: 7.5px;
+  line-height: 1.55;
+  letter-spacing: 0.04em;
+  color: var(--txt-dim);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.boot__readout > div {
+  animation: boot-type 380ms steps(12) both;
+}
+
+@keyframes boot-type {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+/* -------------------------------------------------- left column -- */
+
+.boot__side {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.6vh, 18px);
+  min-width: 0;
+  min-height: 0;
+}
+
+.boot__side--left {
+  grid-area: left;
+  padding-right: clamp(10px, 1.4vw, 24px);
+  border-right: 2px solid rgba(191, 233, 238, 0.4);
+  container: bootleft / inline-size;
+}
+
+/* A narrow left column cannot hold a centred dial with readouts on both
+   sides of it — at 1366 the left-hand numbers ran off the screen. The dial
+   moves right and all three readouts stack down its left flank instead. */
+@container bootleft (max-width: 340px) {
+  .boot__side--left .boot__dial {
+    align-self: flex-end;
+    width: min(54%, 34vh);
+    margin-right: 2%;
+  }
+
+  .boot__side--left .boot__num--c {
+    top: 38%;
+    left: auto;
+    right: 104%;
+    font-size: clamp(9px, 0.75vw, 12px);
+  }
+
+  .boot__side--left .boot__num--c::before {
+    content: none;
+  }
+
+  .boot__side--left .boot__num--c::after {
+    content: ' •';
+    color: var(--c);
+  }
+}
+
+.boot__rail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.boot__dial {
+  position: relative;
+  width: min(62%, 36vh);
+  align-self: center;
+  aspect-ratio: 1;
+}
+
+.boot__num {
+  position: absolute;
+  font-size: clamp(10px, 0.9vw, 14px);
+  font-weight: 700;
+  color: #e6fbfd;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.boot__num::after {
+  content: ' •';
+  color: var(--c);
+}
+
+.boot__num--a { top: 12%; right: 102%; }
+.boot__num--b { top: 24%; right: 104%; font-size: clamp(9px, 0.75vw, 12px); }
+.boot__num--c { top: 55%; left: 102%; }
+.boot__num--c::after { content: none; }
+.boot__num--c::before { content: '• '; color: var(--c); }
+
+.boot__coord {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #e6fbfd;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 0 0 12px 0;
+  width: 70%;
+  align-self: flex-end;
+}
+
+.boot__coord .boot__bar {
+  height: 6px;
+}
+
+.boot__lower {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  border: 1px solid var(--line);
+}
+
+.boot__lower .boot__ring {
+  max-height: 100%;
+  max-width: 150px;
+  justify-self: center;
+}
+
+.boot__wave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 46px;
+  padding: 4px 6px;
+  border: 1px solid rgba(191, 233, 238, 0.12);
+  background: rgba(191, 233, 238, 0.03);
+}
+
+.boot__wave i {
+  flex: 1;
+  background: rgba(191, 233, 238, 0.45);
+  animation: boot-wave 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes boot-wave {
+  from { transform: scaleY(0.25); }
+  to { transform: scaleY(1); }
+}
+
+/* -------------------------------------------------------- centre -- */
+
+.boot__center {
+  grid-area: center;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  container-type: size;
+  cursor: pointer;
+}
+
+.boot__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.boot__map {
+  position: absolute;
+  inset: 6% 6% 10%;
+  width: 88%;
+  height: 84%;
+  fill: rgba(191, 233, 238, 0.13);
+  animation: boot-map 1.8s ease 0.2s both;
+}
+
+@keyframes boot-map {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* The four bracketed corner readouts. */
+.boot__corner {
+  position: absolute;
+  z-index: 1;
+  font-size: clamp(9px, 0.8vw, 11.5px);
+  line-height: 1.7;
+  letter-spacing: 0.06em;
+  color: var(--c);
+  text-shadow: 0 0 8px var(--c-dim);
+}
+
+.boot__corner::before {
+  content: '';
+  position: absolute;
+  width: 34px;
+  height: 22px;
+  border: 1.5px solid var(--c);
+  box-shadow: 0 0 8px var(--c-dim);
+}
+
+.boot__corner--tl {
+  top: 10%;
+  left: 7%;
+  padding: 10px 0 0 14px;
+}
+
+.boot__corner--tl::before {
+  top: 0;
+  left: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.boot__corner--tr {
+  top: 10%;
+  right: 7%;
+  padding: 10px 14px 0 0;
+  text-align: right;
+}
+
+.boot__corner--tr::before {
+  top: 0;
+  right: 0;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+.boot__corner--bl {
+  bottom: 12%;
+  left: 7%;
+  padding: 0 0 10px 14px;
+}
+
+.boot__corner--bl::before {
+  bottom: 0;
+  left: 0;
+  border-right: 0;
+  border-top: 0;
+}
+
+.boot__corner--br {
+  bottom: 12%;
+  right: 7%;
+  padding: 0 14px 10px 0;
+}
+
+.boot__corner--br::before {
+  bottom: 0;
+  right: 0;
+  border-left: 0;
+  border-top: 0;
+}
+
+.boot__log {
+  white-space: nowrap;
+  animation: boot-type 420ms steps(20) both;
+}
+
+.boot__caret {
+  color: var(--c-hi);
+}
+
+.boot__dots {
+  opacity: 0.55;
+}
+
+.boot__status[data-tone='ok'] {
+  color: var(--ok);
+  text-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+}
+
+.boot__status[data-tone='warn'] {
+  color: var(--warn);
+  text-shadow: 0 0 8px rgba(255, 160, 77, 0.5);
+}
+
+.boot__ellipsis {
+  display: inline-block;
+  animation: boot-blink 1s steps(2) infinite;
+}
+
+@keyframes boot-blink {
+  50% { opacity: 0; }
+}
+
+/* The title block, centred over the map. */
+.boot__title {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 2cqh, 18px);
+  text-align: center;
+  pointer-events: none;
+}
+
+.boot__rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(48cqi, 460px);
+}
+
+.boot__rule i {
+  flex: 1;
+  height: 1px;
+  background: var(--c-mid);
+  box-shadow: 0 0 6px var(--c);
+}
+
+.boot__rule b {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--c);
+  transform: rotate(45deg);
+}
+
+.boot__name {
+  margin: 0;
+  font-family: var(--font-hud, Poppins), sans-serif;
+  font-size: clamp(34px, min(11cqi, 22cqh), 132px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  /* Letter-spacing adds a trailing gap after the last letter; this pulls
+     the word back to true optical centre. */
+  margin-right: -0.12em;
+  color: #eafdff;
+  text-shadow:
+    0 0 6px rgba(0, 232, 241, 0.9),
+    0 0 22px rgba(0, 232, 241, 0.55),
+    0 0 60px rgba(0, 232, 241, 0.35);
+}
+
+.boot [style*='--d'].boot__name {
+  animation:
+    boot-in 700ms cubic-bezier(0.2, 0.7, 0.2, 1) var(--d) both,
+    boot-flicker 1.4s linear var(--d) 1;
+}
+
+@keyframes boot-flicker {
+  0%, 18%, 22%, 52%, 56%, 100% { opacity: 1; }
+  20%, 54% { opacity: 0.35; }
+}
+
+.boot__sub {
+  font-size: clamp(11px, min(1.9cqi, 3.6cqh), 22px);
+  font-weight: 700;
+  letter-spacing: 0.72em;
+  margin-right: -0.72em;
+  color: var(--c);
+  text-shadow: 0 0 10px var(--c-mid);
+}
+
+.boot__progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(62cqi, 420px);
+}
+
+.boot__track {
+  flex: 1;
+  height: 8px;
+  padding: 1.5px;
+  border: 1px solid var(--c-mid);
+}
+
+.boot__track b {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-dim), var(--c));
+  box-shadow: 0 0 10px var(--c);
+}
+
+.boot__pct {
+  width: 3.5ch;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.boot__tag {
+  margin: 0;
+  font-size: clamp(10px, min(1.2cqi, 2.4cqh), 14px);
+  letter-spacing: 0.3em;
+  margin-right: -0.3em;
+  color: var(--txt);
+}
+
+/* -------------------------------------------------- right column -- */
+
+.boot__side--right {
+  grid-area: right;
+  padding-left: clamp(10px, 1.2vw, 20px);
+  border-left: 2px solid rgba(191, 233, 238, 0.4);
+  justify-content: space-between;
+}
+
+.boot__side--right .boot__ring {
+  width: min(100%, 150px);
+  align-self: center;
+}
+
+.boot__tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.boot__tiles i {
+  aspect-ratio: 1.3;
+  border: 1.5px solid rgba(191, 233, 238, 0.35);
+  border-radius: 2px;
+  transition: background 300ms, border-color 300ms;
+}
+
+.boot__tiles i[data-on='true'] {
+  border-color: var(--c-mid);
+  background: rgba(0, 232, 241, 0.12);
+}
+
+.boot__gauges--3 {
+  justify-content: space-around;
+}
+
+/* ------------------------------------------------------- footer -- */
+
+.boot__foot {
+  grid-area: foot;
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 2vw, 32px);
+  min-width: 0;
+}
+
+.boot__conn {
+  flex: 0 1 380px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #e6fbfd;
+}
+
+.boot__conn-sub {
+  grid-column: 1 / -1;
+  padding: 1px 8px;
+  text-align: right;
+  font-size: 8px;
+  color: #03060a;
+  background: #e6fbfd;
+}
+
+.boot__ip {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #e6fbfd;
+  white-space: nowrap;
+}
+
+.boot__gauges--foot {
+  margin-left: auto;
+}
+
+.boot__skip {
+  position: absolute;
+  right: clamp(16px, 3vw, 56px);
+  top: 10px;
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  color: var(--txt-dim);
+  animation: boot-in 600ms ease 1.6s both;
+}
+
+/* --------------------------------------------------- responsive -- */
+
+/* The right-hand instrument is the first to go: it is pure texture. */
+@media (max-width: 1180px) {
+  .boot {
+    grid-template-columns: minmax(220px, 0.8fr) minmax(0, 2fr);
+    grid-template-areas:
+      'left center'
+      'foot foot';
+  }
+
+  .boot__side--right {
+    display: none;
+  }
+}
+
+/* Phones and narrow windows: the title card alone, full-bleed. The side
+   instrument would leave the title a sliver, and the footer's gauges would
+   wrap into a second row of noise. */
+@media (max-width: 760px) {
+  .boot {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'center'
+      'foot';
+  }
+
+  .boot__side--left,
+  .boot__gauges--foot,
+  .boot__bar--mid {
+    display: none;
+  }
+
+  .boot__foot {
+    justify-content: space-between;
+  }
+}
+
+/* Short windows: the gauge row is the tallest thing in the left column. */
+@media (max-height: 640px) {
+  .boot__gauges:not(.boot__gauges--foot),
+  .boot__readout {
+    display: none;
+  }
+}
+
+/* Inside the title card itself — responds to its own box. The bottom
+   corners would sit on the title once the card gets small, and the boot
+   log's dotted leaders would push past the edge. */
+@container (max-width: 560px) {
+  .boot__corner--bl,
+  .boot__corner--br {
+    display: none;
+  }
+
+  .boot__corner--tl,
+  .boot__corner--tr {
+    top: 3%;
+  }
+
+  .boot__corner--tl {
+    left: 4%;
+  }
+
+  .boot__corner--tr {
+    right: 4%;
+  }
+
+  .boot__dots {
+    display: none;
+  }
+
+  .boot__rule {
+    width: 70cqi;
+  }
+
+  .boot__progress {
+    width: 78cqi;
+  }
+}
+
+@container (max-width: 420px) {
+  .boot__corner--tr {
+    display: none;
+  }
+}
+
+@container (max-height: 420px) {
+  .boot__corner--bl,
+  .boot__corner--br,
+  .boot__tag {
+    display: none;
+  }
+}
+
+/* No spinning, no scanning, no flicker — a brief static card that fades. */
+@media (prefers-reduced-motion: reduce) {
+  .boot *,
+  .boot [style*='--d'] {
+    animation: none !important;
+  }
+
+  .boot .boot__draw {
+    stroke-dashoffset: 0;
+  }
+
+  .boot {
+    transition: opacity 200ms ease;
+  }
+
+  .boot[data-phase='exit'] {
+    clip-path: inset(0 0 0 0);
+    filter: none;
+  }
+}

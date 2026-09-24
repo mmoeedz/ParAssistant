@@ -48,7 +48,7 @@
 .msg__bubble {
   position: relative;
   max-width: 78%;
-  padding: 10px 15px;
+  padding: calc(10px * var(--ui-scale)) calc(15px * var(--ui-scale));
   background: linear-gradient(135deg, var(--accent-soft), transparent 70%), var(--surface-2);
   border: 1px solid var(--accent-line);
   color: var(--text);
@@ -62,7 +62,7 @@
 
 .msg__body {
   min-width: 0;
-  padding-top: 6px;
+  padding-top: calc(6px * var(--ui-scale));
   font-size: var(--text-md);
   line-height: 1.65;
   white-space: pre-wrap;
@@ -70,7 +70,7 @@
 }
 
 .msg__meta {
-  margin-top: 6px;
+  margin-top: calc(6px * var(--ui-scale));
   display: flex;
   align-items: center;
   gap: var(--sp-2);
@@ -82,9 +82,9 @@
 
 .msg__caret {
   display: inline-block;
-  width: 8px;
-  height: 15px;
-  margin-left: 3px;
+  width: calc(8px * var(--ui-scale));
+  height: calc(15px * var(--ui-scale));
+  margin-left: calc(3px * var(--ui-scale));
   vertical-align: -2px;
   background: var(--accent);
   box-shadow: var(--accent-glow);
@@ -227,7 +227,7 @@
 
 .chip {
   position: relative;
-  padding: 7px 14px;
+  padding: calc(7px * var(--ui-scale)) calc(14px * var(--ui-scale));
   border-radius: var(--r-md);
   border: 1px solid var(--border);
   background: var(--surface);
@@ -240,7 +240,7 @@
 
 .chip::before {
   content: '>';
-  margin-right: 7px;
+  margin-right: calc(7px * var(--ui-scale));
   font-family: var(--font-hud);
   color: var(--accent);
   opacity: 0.55;
@@ -265,7 +265,7 @@
 .composer__box {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: calc(4px * var(--ui-scale));
   padding: 5px 6px 5px var(--sp-3);
   border-radius: var(--r-lg);
   border: 1px solid var(--border);
@@ -279,7 +279,7 @@
    first row on its own and the controls sit under it, right-aligned: the
    ordinary mobile composer, rather than a desktop one with the input
    squeezed to a stub. */
-@container panel (max-width: 380px) {
+@container panel (max-width: 29.2em) {
   .composer__box {
     flex-wrap: wrap;
     /* Right-aligns the second line; the field on the first fills it anyway. */
@@ -290,7 +290,7 @@
 
   .composer textarea {
     flex-basis: 100%;
-    padding-inline: 4px;
+    padding-inline: calc(4px * var(--ui-scale));
   }
 }
 
@@ -306,9 +306,9 @@
 
 .composer textarea {
   flex: 1;
-  min-height: 26px;
+  min-height: calc(26px * var(--ui-scale));
   max-height: 120px;
-  padding: 4px 0;
+  padding: calc(4px * var(--ui-scale)) 0;
   border: none;
   outline: none;
   resize: none;
@@ -326,8 +326,8 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: calc(30px * var(--ui-scale));
+  height: calc(30px * var(--ui-scale));
   flex: none;
   border-radius: var(--r-md);
   color: var(--text-faint);
@@ -375,8 +375,8 @@
 .send {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: calc(30px * var(--ui-scale));
+  height: calc(30px * var(--ui-scale));
   flex: none;
   border-radius: var(--r-md);
   background: var(--accent);

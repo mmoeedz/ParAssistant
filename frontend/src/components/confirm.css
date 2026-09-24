@@ -18,7 +18,7 @@
 
 .confirm {
   position: relative;
-  width: min(460px, 100%);
+  width: min(calc(460px * var(--ui-scale)), 100%);
   padding: var(--sp-5);
   border-radius: var(--r-lg);
   border: 1px solid var(--border-strong);
@@ -33,8 +33,8 @@
 .confirm::after {
   content: '';
   position: absolute;
-  width: 12px;
-  height: 12px;
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
   border: 1px solid var(--warn);
   pointer-events: none;
 }
@@ -113,7 +113,7 @@
   margin: var(--sp-4) 0 0;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: calc(7px * var(--ui-scale));
 }
 
 .confirm__params > div {

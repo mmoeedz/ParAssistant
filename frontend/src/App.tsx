@@ -15,6 +15,7 @@ import { NowPlaying } from '@/components/dashboard/NowPlaying'
 import { AgentsView } from '@/components/views/AgentsView'
 import { SystemView } from '@/components/views/SystemView'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { BootScreen } from '@/components/boot/BootScreen'
 import '@/components/layout/layout.css'
 
 export default function App() {
@@ -69,6 +70,9 @@ export default function App() {
       {view === 'system' ? <SystemView /> : null}
 
       <ConfirmDialog />
+
+      {/* Over everything while the app mounts behind it; removes itself. */}
+      <BootScreen />
     </div>
   )
 }

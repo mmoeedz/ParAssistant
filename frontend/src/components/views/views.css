@@ -11,8 +11,6 @@
   gap: var(--gutter);
   padding: var(--gutter);
   width: 100%;
-  max-width: var(--shell-max);
-  margin-inline: auto;
   overflow-x: hidden;
 }
 
@@ -45,7 +43,7 @@
 
 .agview__head .section-title {
   flex: none;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
 }
 
 .agview__sub {
@@ -88,19 +86,19 @@
     clamp(var(--sp-3), 2.5cqi, var(--sp-4));
 }
 
-@container panel (min-width: 380px) {
+@container panel (min-width: 29.2em) {
   .agview__strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@container panel (min-width: 720px) {
+@container panel (min-width: 55.4em) {
   .agview__strip {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
-@container panel (min-width: 1180px) {
+@container panel (min-width: 90.8em) {
   .agview__strip {
     grid-template-columns: repeat(7, minmax(0, 1fr));
   }
@@ -109,7 +107,7 @@
 .lacard {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: calc(7px * var(--ui-scale));
   padding: var(--sp-3);
   min-width: 0;
   border: 1px solid var(--border);
@@ -135,8 +133,8 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: 10px;
-  height: 10px;
+  width: calc(10px * var(--ui-scale));
+  height: calc(10px * var(--ui-scale));
   flex: none;
 }
 
@@ -159,8 +157,8 @@
 }
 
 .lacard__dot {
-  width: 5px;
-  height: 5px;
+  width: calc(5px * var(--ui-scale));
+  height: calc(5px * var(--ui-scale));
   border-radius: var(--r-full);
   background: var(--tone);
   box-shadow: 0 0 6px var(--tone);
@@ -179,7 +177,7 @@
 
 .lacard__state {
   flex: none;
-  padding: 2px 8px;
+  padding: 2px calc(8px * var(--ui-scale));
   border-radius: var(--r-full);
   border: 1px solid var(--hairline);
   background: var(--surface-3);
@@ -242,7 +240,7 @@
 
 .lacard__bar {
   display: block;
-  height: 4px;
+  height: calc(4px * var(--ui-scale));
   border-radius: var(--r-full);
   background: var(--surface-3);
   overflow: hidden;
@@ -267,7 +265,7 @@
 .lacard__bar b[data-running='true'] {
   /* Before its first step lands the fill is 0% wide; a sliver keeps the
      shimmer visible without overstating the figure printed beside it. */
-  min-width: 6px;
+  min-width: calc(6px * var(--ui-scale));
   box-shadow: 0 0 8px var(--tone);
   animation: lacard-work 1.4s var(--ease) infinite;
 }
@@ -291,7 +289,7 @@
    This lets the column collapse to the space that actually exists. */
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(268px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(calc(268px * var(--ui-scale)), 100%), 1fr));
   gap: clamp(var(--sp-3), 1.4vw, var(--sp-5));
 }
 
@@ -324,8 +322,8 @@
 }
 
 .acard__mark {
-  width: 10px;
-  height: 10px;
+  width: calc(10px * var(--ui-scale));
+  height: calc(10px * var(--ui-scale));
   border-radius: 2px;
   transform: rotate(45deg);
   background: var(--tone);
@@ -340,8 +338,8 @@
 .acard__portrait {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 52px;
+  width: calc(40px * var(--ui-scale));
+  height: calc(52px * var(--ui-scale));
   flex: none;
   border-radius: var(--r-md);
   background: color-mix(in srgb, var(--tone) 10%, var(--surface-2));
@@ -361,7 +359,7 @@
 .acard__name-edit {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: calc(5px * var(--ui-scale));
   max-width: 100%;
 }
 
@@ -383,7 +381,7 @@
 
 .acard__name-input {
   width: 100%;
-  padding: 1px 4px;
+  padding: 1px calc(4px * var(--ui-scale));
   border-radius: 3px;
   border: 1px solid var(--tone);
   background: var(--surface-solid);
@@ -441,11 +439,11 @@
 .acard__tools {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: calc(5px * var(--ui-scale));
 }
 
 .tool-chip {
-  padding: 2px 7px;
+  padding: 2px calc(7px * var(--ui-scale));
   border-radius: var(--r-sm);
   border: 1px solid var(--hairline);
   background: var(--surface-2);
@@ -468,8 +466,8 @@
 }
 
 .owner__mark {
-  width: 10px;
-  height: 10px;
+  width: calc(10px * var(--ui-scale));
+  height: calc(10px * var(--ui-scale));
   border-radius: 2px;
   transform: rotate(45deg);
   background: var(--tone, var(--accent));
@@ -504,10 +502,10 @@
 
 .notes {
   margin: 0;
-  padding-left: 18px;
+  padding-left: calc(18px * var(--ui-scale));
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: calc(6px * var(--ui-scale));
   font-size: var(--text-sm);
   color: var(--text-dim);
   line-height: 1.55;
@@ -529,9 +527,12 @@
 
 /* -------------------------------------------------------------- history -- */
 
+/* Task history as a card grid: one column on a laptop, several across a
+   wide screen, instead of a single strip of full-width rows. */
 .history {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(480px * var(--ui-scale))), 1fr));
+  align-items: start;
   gap: var(--sp-3);
 }
 
@@ -614,7 +615,7 @@
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  min-height: 34px;
+  min-height: calc(34px * var(--ui-scale));
   padding: 0 var(--sp-3);
   border-radius: var(--r-md);
   color: var(--text-faint);
@@ -652,7 +653,7 @@
 }
 
 .sysnav__subitem {
-  min-height: 28px;
+  min-height: calc(28px * var(--ui-scale));
   padding: 0 var(--sp-2);
   border-radius: var(--r-sm);
   font-size: var(--text-sm);
@@ -675,7 +676,7 @@
    a bar rather than a rail, and comes back in the sidebar form below. */
 .sysnav__foot {
   display: none;
-  gap: 6px;
+  gap: calc(6px * var(--ui-scale));
   font-size: var(--text-xs);
   line-height: 1.45;
   color: var(--text-faint);
@@ -696,7 +697,7 @@
 @media (min-width: 760px) {
   .sysview {
     display: grid;
-    grid-template-columns: clamp(200px, 17vw, 260px) minmax(0, 1fr);
+    grid-template-columns: clamp(200px, 14vw, calc(260px * var(--ui-scale))) minmax(0, 1fr);
   }
 
   .sysnav {

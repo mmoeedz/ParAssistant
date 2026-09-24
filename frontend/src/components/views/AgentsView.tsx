@@ -91,10 +91,11 @@ export function AgentsView() {
         </header>
 
         <div className="agview__body">
-          {/* Full-screen the town would otherwise blow every desk up to two or
-              three times the size it was drawn at — see useFloorBox. */}
-          {tab === 'TOWN' ? <TownStage maxWidth={1400} /> : null}
-          {tab === 'MAP' ? <TownMap maxWidth={1400} /> : null}
+          {/* Uncapped: the town fills the page at any size, drawing a deeper
+              floor on a tall screen (see useFloorH) rather than sitting as a
+              1400px island in the middle of a 4K display. */}
+          {tab === 'TOWN' ? <TownStage /> : null}
+          {tab === 'MAP' ? <TownMap /> : null}
           {tab === 'LIST' ? (
             <div className="agview__list">
               <div className="cards">

@@ -193,6 +193,14 @@ button {
   }
 }
 
+/* Icons take their size from a pixel attribute (size={14}), which the
+   density scale cannot reach. zoom scales the icon's own box along with the
+   type beside it, so a 4K panel's icons are not left at laptop size next to
+   1.5x text. At --ui-scale 1 this is a no-op. */
+svg.lucide {
+  zoom: var(--ui-scale);
+}
+
 ::selection {
   background: var(--accent-soft);
   color: var(--text);

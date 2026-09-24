@@ -35,26 +35,33 @@
   --hud-size: calc(10px * var(--ui-scale));
   --hud-track: 0.12em;
 
-  --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --sp-4: 16px;
-  --sp-5: 20px;
-  --sp-6: 24px;
-  --sp-8: 32px;
-  --sp-10: 40px;
+  --sp-1: calc(4px * var(--ui-scale));
+  --sp-2: calc(8px * var(--ui-scale));
+  --sp-3: calc(12px * var(--ui-scale));
+  --sp-4: calc(16px * var(--ui-scale));
+  --sp-5: calc(20px * var(--ui-scale));
+  --sp-6: calc(24px * var(--ui-scale));
+  --sp-8: calc(32px * var(--ui-scale));
+  --sp-10: calc(40px * var(--ui-scale));
 
   /* ----------------------------------------------------------- layout --
-     The gutter between and around the workspace columns, and the ceiling
-     the workspace is allowed to grow to. Both are fluid so the shell reads
-     as deliberately laid out at 360px and at 3440px, rather than as one
-     size with the other bolted on. */
-  --gutter: clamp(10px, 0.9vw, 22px);
-  --shell-max: 2200px;
-  /* Reading measure for the prose views — long lines are the single
-     easiest way to make a wide monitor feel worse than a narrow one. */
-  --read-max: 980px;
-  --titlebar-h: 52px;
+     The gutter between and around the workspace columns. Fluid all the way
+     up, so a 4K panel gets proportionally more air between its columns
+     instead of the same 22px it had at 1920.
+
+     There is deliberately no width cap on the workspace any more. An earlier
+     pass held it to 2200-3200px and centred it; on a 3840 panel that left
+     560px of blank canvas either side of a UI that looked as if it had been
+     designed for a smaller screen. The layout now reflows to the viewport
+     instead (see layout.css), and --shell-max only survives as 100% so
+     anything still reading it gets the full width. */
+  --gutter: clamp(10px, 0.85vw, 40px);
+  --shell-max: 100%;
+  /* Reading measure for prose paragraphs. Applies to a paragraph, never to
+     a page container — see .view__inner, which lays its sections out in
+     columns rather than capping the page. */
+  --read-max: 72ch;
+  --titlebar-h: calc(52px * var(--ui-scale));
 
   /* Minimum comfortable hit area. Applied only under a coarse pointer, so
      a mouse-driven desktop keeps its compact instrument-panel controls. */
@@ -177,51 +184,35 @@
   }
 }
 
-/* How wide the workspace may grow is a question about card widths and line
-   lengths, so it steps on width alone. How large the text is, is a question
-   about physical pixel density, so it also asks about height: a 3440x1440
+/* Density steps.
+
+   How large type and spacing should be is a question about physical pixel
+   density, so each step asks about height as well as width: a 3440x1440
    ultrawide and a 2560x1440 monitor are the same ~110ppi glass and want the
-   same type, while a genuinely tall 3840x2160 panel is ~140ppi and wants
-   more. That is why the largest step asks for 2000px of height — the only
-   common displays that report it are unscaled 4K and up. */
-@media (min-width: 2400px) {
-  :root {
-    --shell-max: 2400px;
-  }
-}
+   same density, while an unscaled 3840x2160 panel is ~140-160ppi and wants
+   considerably more — at 1.2 it read as a laptop UI shrunk onto a TV. The
+   4K step only fires on a panel that reports 1800px+ of CSS height, which
+   in practice means 4K with OS scaling off; with scaling on, the browser
+   already reports ~1920 CSS pixels and the 1920 step applies.
 
-@media (min-width: 3200px) {
-  :root {
-    --shell-max: 2720px;
-  }
-}
-
-/* A 49" 5120x1440 is a different proposition from a 4K panel: it has barely
-   more height than a laptop and three times the width, so holding it to
-   2720px leaves 1200px of void on each side and the app reads as abandoned
-   in the middle of the screen. It gets more width — but not all of it, or
-   the console's log lines stop being readable. */
-@media (min-width: 4400px) {
-  :root {
-    --shell-max: 3200px;
-  }
-}
-
+   Type and spacing move together (see --sp-* above), so a denser step is a
+   proportionally larger layout, not bigger text in the same boxes. Widths
+   are never scaled here — the columns reflow to the viewport instead. */
 @media (min-width: 1920px) and (min-height: 900px) {
   :root {
     --ui-scale: 1.05;
   }
 }
 
-@media (min-width: 2400px) and (min-height: 1000px) {
+@media (min-width: 2400px) and (min-height: 1300px) {
   :root {
-    --ui-scale: 1.12;
+    --ui-scale: 1.16;
   }
 }
 
-@media (min-width: 3400px) and (min-height: 2000px) {
+@media (min-width: 3200px) and (min-height: 1800px) {
   :root {
-    --ui-scale: 1.2;
+    --ui-scale: 1.5;
   }
 }
 
