@@ -17,6 +17,7 @@ import asyncio
 import base64
 import logging
 import os
+import re
 from typing import Any, Callable
 
 from ..config import CONFIG
@@ -31,6 +32,35 @@ log = logging.getLogger("paradox.model")
 # fails with a clear message instead of leaving the UI stuck on "In Progress"
 # with only the Cancel button as a way out.
 REQUEST_TIMEOUT = 90.0
+
+# Waits before each retry of a 503. A 429 waits however long Google says to
+# instead, as long as that is no more than MAX_RETRY_WAIT.
+RETRY_503 = (2.0, 5.0, 10.0)
+MAX_RETRY_WAIT = 40.0
+
+
+class _Retry(Exception):
+    """A failure worth waiting out; `final` is raised if the waiting runs out."""
+
+    def __init__(self, reason: str, delay: float | None, cause: BaseException,
+                 final: ModelUnavailable) -> None:
+        super().__init__(reason)
+        self.reason = reason
+        self.cause = cause
+        self.final = final
+        self.delay = delay if delay is not None else 0.0
+
+    def with_default(self, delay: float) -> "_Retry":
+        if self.delay <= 0:
+            self.delay = delay
+        return self
+
+
+def _retry_delay(text: str) -> float:
+    """Google's suggested wait from a 429 body, e.g. "Please retry in 23.5s"."""
+    match = re.search(r"retry in ([\d.]+)\s*s", text, re.IGNORECASE) or re.search(
+        r"retryDelay['\"]?\s*:\s*['\"]?([\d.]+)s", text)
+    return float(match.group(1)) + 1.0 if match else 20.0
 
 
 class GoogleModel(ModelClient):
@@ -92,8 +122,33 @@ class GoogleModel(ModelClient):
             thinking_config=thinking,
         )
 
+        response = await self._generate(contents, config)
+        return self._parse(response, on_text)
+
+    async def _generate(self, contents: Any, config: Any) -> Any:
+        """One request, retried through Gemini's short-lived failures.
+
+        Both of these were hit in normal use on the free tier: a 503 "high
+        demand" that clears in seconds, and a per-minute 429 after about six
+        quick requests (one agent task makes one request per step). Failing
+        the task on either meant a long task almost never finished.
+        """
+        for attempt in range(len(RETRY_503) + 1):
+            try:
+                return await self._request(contents, config)
+            except _Retry as retry:
+                if attempt >= len(RETRY_503):
+                    raise retry.final from retry.cause
+                retry.with_default(RETRY_503[attempt])
+                if retry.delay > MAX_RETRY_WAIT:
+                    raise retry.final from retry.cause
+                log.info("Gemini %s — retrying in %.0fs", retry.reason, retry.delay)
+                await asyncio.sleep(retry.delay)
+        raise AssertionError("unreachable")
+
+    async def _request(self, contents: Any, config: Any) -> Any:
         try:
-            response = await asyncio.wait_for(
+            return await asyncio.wait_for(
                 self._client.aio.models.generate_content(
                     model=self.model, contents=contents, config=config
                 ),
@@ -107,7 +162,7 @@ class GoogleModel(ModelClient):
         except Exception as exc:  # noqa: BLE001
             text = str(exc)
             if "RESOURCE_EXHAUSTED" in text or "429" in text:
-                log.warning("Gemini quota error, raw: %s", text)
+                log.info("Gemini quota error, raw: %s", text[:400])
                 # The free tier has separate per-minute AND per-day caps. Only
                 # the per-minute one clears by waiting — a per-day quota does
                 # not reset until midnight Pacific, so telling the user to
@@ -121,19 +176,26 @@ class GoogleModel(ModelClient):
                         "project for higher limits, switch PARADOX_MODEL to a "
                         "different Gemini model, or switch providers."
                     ) from exc
-                raise ModelUnavailable(
-                    "Gemini rate limit hit (free tier is ~20 requests/minute). "
-                    "Wait a minute, enable billing on the Google project for higher "
-                    "limits, or switch providers."
+                raise _Retry(
+                    "rate limit (per minute)", _retry_delay(text), exc,
+                    ModelUnavailable(
+                        "Gemini rate limit hit (the free tier allows only a few requests "
+                        "a minute) and it did not clear in time. Wait a minute, enable "
+                        "billing on the Google project for higher limits, or switch providers."
+                    ),
                 ) from exc
             if "UNAVAILABLE" in text or "503" in text or "high demand" in text.lower():
-                raise ModelUnavailable(
-                    "Gemini is temporarily overloaded on Google's side (503). This "
-                    "is not something wrong here — try the same request again in a "
-                    "few seconds."
+                raise _Retry(
+                    "overloaded (503)", None, exc,
+                    ModelUnavailable(
+                        "Gemini is overloaded on Google's side (503) and stayed that way "
+                        "through several retries. This is not something wrong here — try "
+                        "again shortly, or set PARADOX_MODEL to another Gemini model."
+                    ),
                 ) from exc
             raise
 
+    def _parse(self, response: Any, on_text: Callable[[str], None] | None) -> ModelTurn:
         text_parts: list[str] = []
         calls: list[ToolCall] = []
         raw: list[dict[str, Any]] = []
@@ -169,6 +231,17 @@ class GoogleModel(ModelClient):
                 raw.append(block)
 
         text = "".join(text_parts).strip()
+        if not text and not calls:
+            # Nothing to show and nothing to run — without this the task was
+            # marked succeeded with a blank reply.
+            reason = getattr(candidate, "finish_reason", None) if candidate else None
+            reason = getattr(reason, "name", None) or str(reason or "no candidates")
+            feedback = getattr(response, "prompt_feedback", None)
+            block = getattr(feedback, "block_reason", None) if feedback else None
+            raise ModelUnavailable(
+                f"Gemini returned an empty reply ({getattr(block, 'name', block) or reason}). "
+                "Try rephrasing the request, or try again."
+            )
         if on_text and text:
             on_text(text)
 

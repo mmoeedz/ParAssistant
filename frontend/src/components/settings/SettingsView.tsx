@@ -11,6 +11,37 @@ const PTT_KEYS = [
   { code: 'F9', label: 'F9' },
 ]
 
+const PROVIDER_NAMES: Record<string, string> = {
+  anthropic: 'Anthropic (Claude)',
+  openai: 'OpenAI',
+  google: 'Google (Gemini)',
+  none: 'None configured',
+}
+
+const TTS_NAMES: Record<string, string> = {
+  google: 'Google Cloud Text-to-Speech',
+  edge: 'Microsoft Edge neural voices',
+  sapi: 'Windows voices (offline)',
+  none: 'None available',
+}
+
+function sttLabel(provider: string, model: string | null): string {
+  if (provider === 'google') return 'Google Cloud Speech-to-Text'
+  if (provider === 'gemini') return `Gemini${model ? ` (${model})` : ''}`
+  return 'Not configured'
+}
+
+/** Where voice data actually goes, for the providers in use. */
+function voicePrivacy(stt?: string, tts?: string): string {
+  const sttWhere = stt === 'google' ? 'Google Cloud' : stt === 'gemini' ? 'Google’s Gemini API' : null
+  const ttsWhere = tts === 'google' ? 'Google Cloud' : tts === 'edge' ? 'Microsoft' : tts === 'sapi' ? null : undefined
+  const parts: string[] = []
+  if (sttWhere) parts.push(`Recordings are transcribed by ${sttWhere}.`)
+  if (ttsWhere) parts.push(`Spoken replies are synthesized by ${ttsWhere}, so reply text leaves this machine.`)
+  else if (ttsWhere === null) parts.push('Spoken replies are synthesized locally by Windows.')
+  return parts.join(' ') || 'Speech is processed by the agent’s configured providers.'
+}
+
 export function SettingsView() {
   const settings = useSession((s) => s.settings)
   const update = useSession((s) => s.updateSettings)
@@ -20,6 +51,8 @@ export function SettingsView() {
   const disconnect = useSession((s) => s.disconnect)
   const preview = useSession((s) => s.preview)
   const setPreview = useSession((s) => s.setPreview)
+
+  const cfg = connection === 'online' ? backendInfo?.config ?? null : null
 
   const panel = (key: keyof typeof settings.panels, value: boolean) =>
     update({ panels: { ...settings.panels, [key]: value } })
@@ -108,32 +141,20 @@ export function SettingsView() {
           </div>
           <div className="rows rows--2">
             <Field label="Provider">
-              <select
-                className="input"
-                value={settings.providers.model}
-                onChange={(e) => update({ providers: { ...settings.providers, model: e.target.value } })}
-              >
-                <option value="anthropic">Anthropic</option>
-                <option value="openai">OpenAI</option>
-                <option value="local">Local (Ollama / vLLM)</option>
-              </select>
+              <input className="input" readOnly value={cfg ? PROVIDER_NAMES[cfg.provider] ?? cfg.provider : '—'} />
             </Field>
             <Field label="Model" hint="Needs vision for when UI Automation falls short.">
-              <input
-                className="input"
-                value={settings.providers.modelName}
-                spellCheck={false}
-                onChange={(e) =>
-                  update({ providers: { ...settings.providers, modelName: e.target.value } })
-                }
-              />
+              <input className="input" readOnly value={cfg?.model ?? '—'} />
             </Field>
           </div>
           <div className="danger-note" style={{ background: 'transparent' }}>
             <TriangleAlert size={14} />
             <span>
-              These fields describe what the agent is configured with. The agent reads its own model
-              and API key from its environment — keys never live in this interface or in the source.
+              {cfg
+                ? 'What the connected agent is running on. '
+                : 'Connect to the agent to see what it is running on. '}
+              It reads its model and API key from its own environment (backend/.env) — change them
+              there and restart the agent. Keys never live in this interface or in the source.
             </span>
           </div>
         </section>
@@ -146,29 +167,12 @@ export function SettingsView() {
           </div>
           <div className="rows rows--2">
             <Field label="Speech to text">
-              <input
-                className="input"
-                value={settings.providers.stt}
-                onChange={(e) => update({ providers: { ...settings.providers, stt: e.target.value } })}
-              />
+              <input className="input" readOnly value={cfg ? sttLabel(cfg.stt, cfg.sttModel) : '—'} />
             </Field>
             <Field label="Text to speech">
-              <input
-                className="input"
-                value={settings.providers.tts}
-                onChange={(e) => update({ providers: { ...settings.providers, tts: e.target.value } })}
-              />
+              <input className="input" readOnly value={cfg ? TTS_NAMES[cfg.tts] ?? cfg.tts : '—'} />
             </Field>
-            <Field label="Voice" hint="For spoken replies and for voice messages it records.">
-              <input
-                className="input"
-                value={settings.providers.ttsVoice}
-                onChange={(e) =>
-                  update({ providers: { ...settings.providers, ttsVoice: e.target.value } })
-                }
-              />
-            </Field>
-            <Field label="Push to talk">
+            <Field label="Push to talk" hint="Or click the mic once to start and again to send.">
               <select
                 className="input"
                 value={settings.voice.pushToTalkKey}
@@ -197,13 +201,10 @@ export function SettingsView() {
           <div className="danger-note" style={{ background: 'transparent' }}>
             <TriangleAlert size={14} />
             <span>
-              Speech recognition and spoken replies both go through Google Cloud — audio and reply
-              text leave this machine to be processed there. With the wake word on, the mic stays
-              open while this tab is open: every phrase you say is transcribed and checked for the
-              wake word, and only what you say after it is ever acted on — this sends more audio to
-              Google than push-to-talk, which only transcribes while you hold the key. These
-              provider names describe the agent's configuration; it reads the real values from its
-              own environment.
+              {voicePrivacy(cfg?.stt, cfg?.tts)} With the wake word on, the mic stays open while this
+              tab is open: every phrase you say is transcribed and checked for the wake word, and only
+              what you say after it is ever acted on — this sends more audio off the machine than
+              push-to-talk, which only records while you hold the key or after you click the mic.
             </span>
           </div>
         </section>

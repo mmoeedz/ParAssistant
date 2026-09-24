@@ -54,6 +54,7 @@ class Controller:
         self.recovery = Recovery()
         self.session.current_task = task
         self.emit(protocol.task_start(task))
+        self._close_unanswered_calls()
         self.history.append({"role": "user", "content": text})
 
         try:
@@ -73,6 +74,31 @@ class Controller:
             self._record(task)
             if self.session.current_task is task:
                 self.session.current_task = None
+
+    def _close_unanswered_calls(self) -> None:
+        """Answer tool calls a stopped task never got to run.
+
+        A task cancelled (or superseded by a new prompt) mid-turn leaves the
+        history ending on an assistant turn whose tool calls have no results.
+        Claude and OpenAI both reject that shape, so without this every later
+        prompt in the session failed; Gemini happens to tolerate it.
+        """
+        if not self.history or self.history[-1].get("role") != "assistant":
+            return
+        content = self.history[-1].get("content")
+        ids = []
+        for block in content if isinstance(content, list) else []:
+            # Canonical dicts, or the Anthropic SDK's own block objects.
+            kind = block.get("type") if isinstance(block, dict) else getattr(block, "type", None)
+            if kind == "tool_use":
+                ids.append(block["id"] if isinstance(block, dict) else block.id)
+        if ids:
+            self.history.append({"role": "user", "content": [
+                self._result_block(
+                    i, "interrupted: the user stopped the task before this step reported back — "
+                       "check the screen before assuming it did or did not happen", error=True)
+                for i in ids
+            ]})
 
     def _record(self, task: Task) -> None:
         """Keep a durable trace of what was attempted, for the Memory panel."""

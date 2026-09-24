@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { Paperclip, Mic, Send, Square, Ear } from 'lucide-react'
 import { useSession } from '@/store/session'
 import { useMic } from '@/hooks/useMic'
-import { useWakeWord } from '@/hooks/useWakeWord'
 import { agentSocket } from '@/transport/socket'
 import './chat.css'
 
 const PREVIEW_TRANSCRIPT = 'Send Ahmed the screenshot I just took and tell him I will explain it tonight'
+/** A press shorter than this is a click: it latches recording on instead. */
+const TAP_MS = 350
+const MAX_LATCHED_MS = 60_000
 
 export function Composer() {
   const [text, setText] = useState('')
@@ -28,13 +30,23 @@ export function Composer() {
   const mic = useMic((chunk) => agentSocket.send({ type: 'voice.audio', chunk }))
   const running = Boolean(activeTaskId)
 
-  // Always-listening: only while connected (or previewing), never mid push-to-talk,
-  // and muted whenever the agent is talking/transcribing/working so it can't hear itself.
-  useWakeWord({
-    enabled: wakeWordEnabled && !preview && connection === 'online' && !listening,
-    muted: running || voiceState === 'speaking' || voiceState === 'transcribing',
-    onError: (message) => applyServerEvent({ type: 'error', message }),
-  })
+  /**
+   * Push-to-talk phases. Refs, not state: the key and pointer handlers need
+   * the current phase synchronously — a release that lands while the mic is
+   * still opening (the permission prompt, say) has to be seen by the start
+   * that is waiting on it.
+   */
+  const phaseRef = useRef<'idle' | 'starting' | 'recording' | 'stopping'>('idle')
+  const stopWantedRef = useRef(false)
+  /** Tap-to-talk: a quick click latches recording on until the next click. */
+  const [latched, setLatched] = useState(false)
+  const latchedRef = useRef(false)
+  const pressAtRef = useRef(0)
+  // Always-listening (WakeWordListener) releases the mic while this is set.
+  const setMicBusy = useSession((s) => s.setPushToTalk)
+  // Unmounted mid-recording (a tab switch): useMic releases the device; this
+  // hands the mic back to always-listening.
+  useEffect(() => () => setMicBusy(false), [setMicBusy])
 
   // auto-grow
   useEffect(() => {
@@ -50,8 +62,13 @@ export function Composer() {
     setText('')
   }
 
+  const setLatch = (on: boolean) => {
+    latchedRef.current = on
+    setLatched(on)
+  }
+
   const startVoice = async () => {
-    if (listening) return
+    if (phaseRef.current !== 'idle') return
     if (!preview && connection !== 'online') {
       applyServerEvent({
         type: 'error',
@@ -60,28 +77,54 @@ export function Composer() {
       })
       return
     }
-    const ok = await mic.start()
-    if (!ok) {
-      applyServerEvent({ type: 'error', message: mic.error ?? 'Could not open the microphone.' })
+    phaseRef.current = 'starting'
+    stopWantedRef.current = false
+    setMicBusy(true)
+    const failure = await mic.start(() => {
+      if (!preview) agentSocket.send({ type: 'voice.start', format: 'webm', sampleRate: 48_000 })
+    })
+    if (failure) {
+      phaseRef.current = 'idle'
+      setMicBusy(false)
+      setLatch(false)
+      if (failure !== 'cancelled') applyServerEvent({ type: 'error', message: failure })
       return
     }
+    phaseRef.current = 'recording'
     setListening(true)
     setVoice('listening')
-    if (!preview) agentSocket.send({ type: 'voice.start' })
+    // Released while the mic was still opening: that release is this stop.
+    if (stopWantedRef.current) void stopVoice()
   }
 
-  const stopVoice = () => {
-    if (!listening) return
-    mic.stop()
+  const stopVoice = async () => {
+    if (phaseRef.current === 'starting') {
+      stopWantedRef.current = true
+      return
+    }
+    if (phaseRef.current !== 'recording') return
+    phaseRef.current = 'stopping'
+    setLatch(false)
     setListening(false)
+    if (!preview) setVoice('transcribing')
+    // Waits for the recorder's last chunk to go out before voice.stop does.
+    const { peak } = await mic.stop()
+    phaseRef.current = 'idle'
+    setMicBusy(false)
     if (preview) {
       setVoice('off')
       submitPrompt(PREVIEW_TRANSCRIPT, 'voice')
       return
     }
-    setVoice('transcribing')
-    agentSocket.send({ type: 'voice.stop' })
+    agentSocket.send({ type: 'voice.stop', peak })
   }
+
+  // A latched recording has no key being held to end it; cap it.
+  useEffect(() => {
+    if (!latched) return undefined
+    const timer = setTimeout(() => void stopRef.current(), MAX_LATCHED_MS)
+    return () => clearTimeout(timer)
+  }, [latched])
 
   // push-to-talk: hold the configured key while not typing.
   // Reads through refs and subscribes once — with no dependency array this
@@ -93,16 +136,18 @@ export function Composer() {
   stopRef.current = stopVoice
 
   useEffect(() => {
-    const isTyping = () =>
-      document.activeElement?.tagName === 'TEXTAREA' || document.activeElement?.tagName === 'INPUT'
+    const isTyping = () => {
+      const el = document.activeElement as HTMLElement | null
+      return !!el && (['TEXTAREA', 'INPUT', 'SELECT'].includes(el.tagName) || el.isContentEditable)
+    }
     const down = (e: KeyboardEvent) => {
       if (e.code !== pushToTalkKey || e.repeat || isTyping()) return
       e.preventDefault()
       void startRef.current()
     }
     const up = (e: KeyboardEvent) => {
-      if (e.code !== pushToTalkKey) return
-      stopRef.current()
+      if (e.code !== pushToTalkKey || latchedRef.current) return
+      void stopRef.current()
     }
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', up)
@@ -121,7 +166,15 @@ export function Composer() {
           ref={areaRef}
           rows={1}
           value={listening ? '' : text}
-          placeholder={listening ? 'Listening…' : 'Type a command or ask anything...'}
+          placeholder={
+            listening
+              ? latched
+                ? 'Listening… click the mic again to send'
+                : 'Listening… release to send'
+              : voiceState === 'transcribing'
+                ? 'Transcribing…'
+                : 'Type a command or ask anything...'
+          }
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -157,18 +210,47 @@ export function Composer() {
           type="button"
           className="cbtn"
           data-listening={listening}
-          title={`Hold to talk (or hold ${pushToTalkKey})`}
+          aria-pressed={listening}
+          aria-label={listening ? 'Stop recording' : 'Talk to Paradox'}
+          title={
+            latched
+              ? 'Recording — click to send'
+              : `Click to talk, or hold (or hold ${pushToTalkKey}) and release to send`
+          }
           onPointerDown={(e) => {
+            if (e.button !== 0) return
             e.preventDefault()
+            if (latchedRef.current) {
+              void stopVoice()
+              return
+            }
             // Capture the pointer so pointerup still fires on this element even
             // if the cursor drifts off the icon mid-hold — without this, a
             // small hand tremor during a real click-and-hold fires pointerleave
             // first, cutting the recording off mid-word.
             e.currentTarget.setPointerCapture(e.pointerId)
+            pressAtRef.current = performance.now()
             void startVoice()
           }}
-          onPointerUp={stopVoice}
-          onPointerCancel={stopVoice}
+          onPointerUp={() => {
+            if (latchedRef.current || phaseRef.current === 'idle') return
+            if (performance.now() - pressAtRef.current < TAP_MS) setLatch(true)
+            else void stopVoice()
+          }}
+          onPointerCancel={() => {
+            if (!latchedRef.current) void stopVoice()
+          }}
+          onKeyDown={(e) => {
+            // Keyboard activation of the button itself: Enter toggles.
+            if (e.key !== 'Enter') return
+            e.preventDefault()
+            if (phaseRef.current === 'idle') {
+              setLatch(true)
+              void startVoice()
+            } else {
+              void stopVoice()
+            }
+          }}
         >
           {listening ? (
             <span className="mic__ring" style={{ ['--mic-level' as string]: ringScale }} />

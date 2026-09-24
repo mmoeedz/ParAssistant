@@ -210,12 +210,26 @@ export type VoiceState =
 
 /* ---------------------------------------------------------------- events -- */
 
+/** What the agent is actually running with, read from its own environment. */
+export interface AgentConfig {
+  /** anthropic | openai | google | none */
+  provider: string
+  model: string | null
+  /** google | gemini | none */
+  stt: string
+  sttModel: string | null
+  /** google | edge | sapi | none */
+  tts: string
+}
+
 export interface ServerHello {
   type: 'hello'
   agent: string
   version: string
   /** capabilities the backend actually has wired up */
   capabilities: string[]
+  /** Absent from agents older than this field. */
+  config?: AgentConfig
 }
 
 export type ServerEvent =
@@ -242,9 +256,22 @@ export type ClientEvent =
   | { type: 'prompt'; text: string; source: MessageSource }
   | { type: 'cancel'; taskId?: string }
   | { type: 'confirm.response'; requestId: string; approved: boolean; remember: boolean }
-  | { type: 'voice.start'; wake?: boolean }
+  | {
+      type: 'voice.start'
+      wake?: boolean
+      /** webm = MediaRecorder WebM/Opus (default); pcm16 = raw 16-bit LE mono */
+      format?: 'webm' | 'pcm16'
+      sampleRate?: number
+    }
   | { type: 'voice.audio'; chunk: string }
-  | { type: 'voice.stop'; wake?: boolean }
+  | {
+      type: 'voice.stop'
+      wake?: boolean
+      /** Loudest level seen while recording, 0-1 — near 0 means a muted input. */
+      peak?: number
+      /** Throw the utterance away instead of transcribing it. */
+      discard?: boolean
+    }
   | { type: 'settings.update'; settings: unknown }
   | { type: 'memory.forget'; id: number }
   | { type: 'memory.clear'; kind?: MemoryKind }

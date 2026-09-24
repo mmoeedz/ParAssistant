@@ -69,13 +69,16 @@ class Task:
 # ----------------------------------------------------------------- events --
 
 
-def hello(capabilities: list[str]) -> dict[str, Any]:
-    return {
+def hello(capabilities: list[str], config: dict[str, Any] | None = None) -> dict[str, Any]:
+    out: dict[str, Any] = {
         "type": "hello",
         "agent": AGENT_NAME,
         "version": AGENT_VERSION,
         "capabilities": capabilities,
     }
+    if config is not None:
+        out["config"] = config
+    return out
 
 
 def message(role: str, text: str, task_id: str | None = None, error: bool = False) -> dict[str, Any]:

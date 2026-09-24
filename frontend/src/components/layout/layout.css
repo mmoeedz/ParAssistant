@@ -654,3 +654,20 @@
     overflow-y: auto;
   }
 }
+
+/* A panel whose render threw — see PanelBoundary.tsx. */
+.panel-crash {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+  color: var(--text-dim);
+  font-size: var(--text-sm);
+}
+
+.panel-crash strong {
+  color: var(--danger);
+  font-weight: 600;
+}

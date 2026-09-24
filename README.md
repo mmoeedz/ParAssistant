@@ -14,7 +14,7 @@ A Windows AI computer assistant. You say what you want; it works out how.
 | 2 | Windows computer control | **built** — apps, windows, mouse, keyboard, files |
 | 3 | Screen understanding | **built** — UI Automation, Windows OCR, vision fallback |
 | 4 | Browser agent (ORION) | **built** — Chrome/Edge over the DevTools Protocol |
-| 5 | Voice agent (ARIA) | **built** — Google Cloud Speech-to-Text in, Google Cloud Text-to-Speech out |
+| 5 | Voice agent (ARIA) | **built** — push-to-talk, tap-to-talk and wake word; transcribed by Gemini or Google Cloud, spoken by Edge, Windows or Google Cloud voices |
 | 6 | Communication agent (LUNA) | **built** — WhatsApp: search, read, send, files, audio |
 | 7 | File/system agent (AXEL) | **built** |
 | 8 | Real Agent Town behaviour | **built** — idle → wake → walk → work → standby, from real tool calls |
@@ -22,7 +22,7 @@ A Windows AI computer assistant. You say what you want; it works out how.
 | 10 | Security, permissions, recovery | **built** — tiers, escalation, loop detection, retries |
 | 11 | Polish | ongoing — incl. the now-playing bar over the Windows media session |
 
-All eleven stages are implemented: 46 tools across seven agents.
+All eleven stages are implemented: 48 tools across seven agents.
 
 The agent controls the computer for real. With no model key set it still runs, still sees the
 machine, and refuses to act rather than pretending.
@@ -63,8 +63,22 @@ Paradox Core orchestrates; each agent owns a real slice of the tool registry.
 | **AXEL** | Files & system — search, open, move, unpack, clipboard, "this" | 7 tools |
 | **ORION** | Browser — Chrome/Edge over CDP, real DOM | 10 tools |
 | **LUNA** | Communication — WhatsApp: search, read, send, files, audio | 7 tools |
-| **ARIA** | Voice — speech in and out, both via Google Cloud | 2 tools |
+| **ARIA** | Voice — speech in and out (see Voice below) | 2 tools |
 | **KAI** | Memory & research — what Paradox keeps between sessions | 3 tools |
+
+## Voice
+
+The mic works with just the model key. Hold **Space** (or hold the mic button) and release to send,
+or click the mic once to start and again to send. With **Listen for the wake word** on (Settings),
+say "Paradox, …" from any tab.
+
+- **Speech to text** — Gemini (`gemini-3.5-flash-lite`, with `gemini-3.6-flash` raced in when it is
+  slow) using the same `GEMINI_API_KEY`. Set `GOOGLE_CLOUD_API_KEY` to use Google Cloud's streaming
+  recognizer instead.
+- **Text to speech** — Google Cloud voices when that key is set, otherwise Microsoft Edge's neural
+  voices, otherwise the built-in Windows voices (offline).
+- A recording that is pure silence is never sent — you get a "check the mic isn't muted" note
+  instead of a command made up from nothing.
 
 Below the console sits the now-playing bar. Windows publishes whatever is playing — Spotify, a
 YouTube tab, VLC — through the system media session; the agent reads the track, artist, album art
@@ -83,10 +97,10 @@ Paradox/
 │   ├── src/types/protocol.ts   ← the contract, defined here
 │   ├── src/types/agents.ts     ← roster, stations, tool→agent map
 │   └── src/components/town/    ← the Agent Town
-└── backend/           Python agent: controller, 46 tools, permissions, memory
+└── backend/           Python agent: controller, 48 tools, permissions, memory
     ├── paradox/agent/          observe → act → verify loop, plus recovery
     ├── paradox/computer/       SendInput, UI Automation, OCR, browser CDP, WhatsApp
-    ├── paradox/voice/          Google Cloud Speech-to-Text and Text-to-Speech
+    ├── paradox/voice/          speech to text (Gemini / Google Cloud) and text to speech
     ├── paradox/memory.py       what Paradox keeps between sessions
     └── selftest.py             17 read-only probes of the machine layer
 ```

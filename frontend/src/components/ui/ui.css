@@ -352,6 +352,20 @@
   box-shadow: var(--accent-glow);
 }
 
+/* A value reported by the agent, not something to edit here. */
+.input[readonly] {
+  cursor: default;
+  color: var(--text-dim);
+  background: transparent;
+  border-style: dashed;
+}
+
+.input[readonly]:hover,
+.input[readonly]:focus {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
 select.input {
   cursor: pointer;
   appearance: none;

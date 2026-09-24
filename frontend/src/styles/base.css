@@ -166,6 +166,17 @@ button {
     min-height: 34px;
   }
 
+  /* The agent card's rename control is its name text — 19px tall. */
+  .acard__name-edit {
+    min-height: 34px;
+  }
+
+  /* Revealed on hover with a mouse; a finger never hovers, so it would
+     never show that names can be edited at all. */
+  .acard__name-pencil {
+    opacity: 0.55;
+  }
+
   /* Often icon-only, so it needs a width floor as well as a height one. */
   .panel__action {
     min-width: 32px;

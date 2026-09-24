@@ -110,11 +110,14 @@ def main() -> int:
         return f"{', '.join(engines)}"
 
     results.append(check("text to speech", tts_check))
-    results.append(check("speech to text",
-                         lambda: f"google-cloud-speech ({stt.MODEL}, {stt.LANGUAGE})" if stt.available()
-                         else (_ for _ in ()).throw(RuntimeError(
-                             "not configured — set GOOGLE_CLOUD_API_KEY or "
-                             "GOOGLE_APPLICATION_CREDENTIALS"))))
+    def stt_check():
+        state = stt.info()
+        if not state["available"]:
+            raise RuntimeError("not configured — set GEMINI_API_KEY, or GOOGLE_CLOUD_API_KEY / "
+                               "GOOGLE_APPLICATION_CREDENTIALS for Google Cloud")
+        return f"{state['provider']} ({state['model']}, {state['language']})"
+
+    results.append(check("speech to text", stt_check))
 
     def memory_check():
         stats = memory.stats()

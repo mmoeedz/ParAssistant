@@ -21,6 +21,11 @@ from .tools import Registry, Tool, build_registry
 
 log = logging.getLogger("paradox.server")
 
+NO_MODEL_HINT = (
+    "Set one of ANTHROPIC_API_KEY, OPENAI_API_KEY or GEMINI_API_KEY in backend/.env "
+    "and restart the agent."
+)
+
 
 def _after_wake_word(text: str, wake_word: str) -> str | None:
     """The command spoken after the wake word, or None if it was never said.
@@ -49,11 +54,14 @@ class Session:
         self.outbox: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
         self.task_handle: asyncio.Task[None] | None = None
         self.pending_confirmations: dict[str, asyncio.Future[bool]] = {}
-        # Voice: audio streams to Google Speech-to-Text chunk by chunk while
-        # the user holds the key, or while the UI is auto-segmenting speech
-        # for the always-listening mode — see StreamingSession in voice/stt.py.
-        self.voice_session: object | None = None
+        # Voice: one transcription session per utterance — fed while the user
+        # holds the key, or while the UI is auto-segmenting speech for the
+        # always-listening mode. See open_session in voice/stt.py.
+        self.voice_session: Any = None
         self.voice_wake_mode = False
+        # Always-listening reports "no speech-to-text" once, not per utterance.
+        self._wake_warned = False
+        self._voice_jobs: set[asyncio.Task[None]] = set()
         self.speak_replies = True
         self.wake_word = "paradox"
         self.controller = Controller(self)
@@ -232,7 +240,7 @@ class Session:
         if self.model is None:
             self.send(protocol.error(
                 "No model is configured, so I cannot work out how to do that. "
-                "Set ANTHROPIC_API_KEY in backend/.env and restart the agent."
+                f"{NO_MODEL_HINT}"
             ))
             return
 
@@ -268,12 +276,21 @@ class Session:
         from .voice import stt
 
         if kind == "voice.start":
+            if self.voice_session is not None:  # a stop that never arrived
+                self.voice_session.abort()
             self.voice_wake_mode = bool(event.get("wake"))
-            # Opens a Google Speech-to-Text streaming session right away —
-            # audio is transcribed as it arrives, not only once recording
-            # stops, so most of the work is already done by the time the
-            # user finishes talking.
-            self.voice_session = stt.StreamingSession() if stt.available() else None
+            # Opens the transcription session right away. With Google Cloud
+            # audio is transcribed as it arrives, so most of the work is done
+            # by the time the user finishes talking; with Gemini it is
+            # buffered and sent in one go on voice.stop.
+            try:
+                self.voice_session = stt.open_session(
+                    str(event.get("format") or "webm"),
+                    int(event.get("sampleRate") or 48000),
+                )
+            except Exception:  # noqa: BLE001 - reported on voice.stop as "not configured"
+                log.warning("could not open a speech-to-text session", exc_info=True)
+                self.voice_session = None
             self.send(protocol.voice_state("listening"))
             return
 
@@ -289,24 +306,51 @@ class Session:
         session, self.voice_session = self.voice_session, None
         wake_mode = self.voice_wake_mode or bool(event.get("wake"))
 
+        if event.get("discard"):
+            # Always-listening cut an utterance short because the agent began
+            # talking or working — half a sentence is not a command.
+            if session is not None:
+                session.abort()
+            self.send(protocol.voice_state("off"))
+            return
+
         if session is None:
             self.send(protocol.voice_state("off"))
-            # Always-listening runs this on every utterance it hears — a hard
-            # error every time would be noise, not signal, so only push-to-talk
-            # (a single deliberate recording) surfaces it.
+            # Always-listening runs this on every utterance it hears — an
+            # error every time would be noise, so it says so once per
+            # connection; push-to-talk (a deliberate recording) always does.
+            if not wake_mode or not self._wake_warned:
+                self._wake_warned = self._wake_warned or wake_mode
+                self.send(protocol.error(stt.not_configured_message() + " Nothing was sent."))
+            return
+
+        # The loudest level the browser measured while recording, 0-1. Near
+        # zero means a muted or wrong input device, not a quiet speaker — and
+        # a transcriber handed pure silence can "hear" words in it anyway.
+        peak = event.get("peak")
+        if isinstance(peak, (int, float)) and peak < stt.SILENCE_PEAK:
+            session.abort()
+            self.send(protocol.voice_state("off"))
             if not wake_mode:
                 self.send(protocol.error(
-                    "Google Speech-to-Text is not configured in the agent (set "
-                    "GOOGLE_CLOUD_API_KEY or GOOGLE_APPLICATION_CREDENTIALS), so the recording "
-                    "could not be transcribed. Nothing was sent."
+                    "The microphone only picked up silence, so nothing was sent. Check it is not "
+                    "muted and that the right input device is selected in Windows sound settings."
                 ))
             return
 
+        # Off the read loop: transcription takes seconds, and while it runs
+        # this connection must still hear Stop, approvals and pings.
+        job = asyncio.create_task(self._finish_voice(session, wake_mode))
+        self._voice_jobs.add(job)
+        job.add_done_callback(self._voice_jobs.discard)
+
+    async def _finish_voice(self, session: Any, wake_mode: bool) -> None:
         self.send(protocol.voice_state("transcribing"))
         try:
             result = await asyncio.to_thread(session.finish)
         except Exception as exc:  # noqa: BLE001
             self.send(protocol.voice_state("off"))
+            log.warning("transcription failed: %s", exc)
             if not wake_mode:
                 self.send(protocol.error(f"Could not transcribe that: {exc}"))
             return
@@ -380,6 +424,21 @@ def capabilities(registry: Registry, model: ModelClient | None) -> list[str]:
     return caps
 
 
+def agent_config(model: ModelClient | None) -> dict[str, Any]:
+    """What the agent is actually running with — shown read-only in Settings."""
+    from .voice import stt, tts
+
+    stt_info = stt.info()
+    provider, _, model_name = (model.name if model else "none:").partition(":")
+    return {
+        "provider": provider,
+        "model": model_name or None,
+        "stt": stt_info["provider"],
+        "sttModel": stt_info["model"] if stt_info["available"] else None,
+        "tts": tts.active_provider() or "none",
+    }
+
+
 async def connection(ws: ServerConnection, model: ModelClient | None, registry: Registry) -> None:
     peer = ws.remote_address
     log.info("UI connected from %s", peer)
@@ -389,12 +448,12 @@ async def connection(ws: ServerConnection, model: ModelClient | None, registry: 
     feed = asyncio.create_task(session.headlines_loop())
     songs = asyncio.create_task(session.media_loop())
 
-    session.send(protocol.hello(capabilities(registry, model)))
+    session.send(protocol.hello(capabilities(registry, model), agent_config(model)))
     session.send_memory()
     if model is None:
         session.send(protocol.error(
             "Connected, but no model is configured — I can see the computer but cannot decide "
-            "anything. Set ANTHROPIC_API_KEY in backend/.env and restart."
+            f"anything. {NO_MODEL_HINT}"
         ))
 
     try:
@@ -406,6 +465,10 @@ async def connection(ws: ServerConnection, model: ModelClient | None, registry: 
         log.info("UI disconnected")
         if session.task_handle and not session.task_handle.done():
             session.task_handle.cancel()
+        for job in list(session._voice_jobs):
+            job.cancel()
+        if session.voice_session is not None:
+            session.voice_session.abort()
         writer.cancel()
         stats.cancel()
         songs.cancel()

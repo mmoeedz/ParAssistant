@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { agentSocket } from '@/transport/socket'
 import { uid } from '@/lib/id'
 import type {
+  AgentConfig,
   ChatMessage,
   ConfirmationRequest,
   ConnectionState,
@@ -133,7 +134,12 @@ function persistOverrides(overrides: TownOverrides) {
 interface SessionState {
   view: View
   connection: ConnectionState
-  backendInfo: { agent: string; version: string; capabilities: string[] } | null
+  backendInfo: {
+    agent: string
+    version: string
+    capabilities: string[]
+    config: AgentConfig | null
+  } | null
   preview: boolean
 
   messages: ChatMessage[]
@@ -142,6 +148,8 @@ interface SessionState {
   confirmation: ConfirmationRequest | null
   observation: ScreenObservation | null
   voice: VoiceState
+  /** Push-to-talk has the microphone; always-listening stands aside. */
+  pushToTalk: boolean
   stats: SystemStats | null
   /** Round-trip time to the agent, from the last answered ping. Null until one lands. */
   latencyMs: number | null
@@ -172,6 +180,7 @@ interface SessionState {
   setPermission: (category: PermissionCategory, policy: PermissionPolicy) => void
   updateSettings: (patch: Partial<Settings>) => void
   setVoice: (state: VoiceState) => void
+  setPushToTalk: (on: boolean) => void
   forgetMemory: (id: number) => void
   clearMemory: () => void
   clearConsole: () => void
@@ -180,6 +189,8 @@ interface SessionState {
   mediaControl: (action: MediaAction) => void
   mediaSeek: (positionSeconds: number) => void
   clearConversation: () => void
+  /** The agent socket closed: anything in flight on it is gone. */
+  connectionLost: () => void
   log: (level: ConsoleLine['level'], source: string, text: string) => void
 }
 
@@ -356,6 +367,7 @@ export const useSession = create<SessionState>((set, get) => {
     confirmation: null,
     observation: null,
     voice: 'off',
+    pushToTalk: false,
     stats: null,
     latencyMs: null,
     headlines: [],
@@ -513,6 +525,7 @@ export const useSession = create<SessionState>((set, get) => {
     },
 
     setVoice: (voice) => set({ voice }),
+    setPushToTalk: (pushToTalk) => set({ pushToTalk }),
 
     forgetMemory: (id) => {
       agentSocket.send({ type: 'memory.forget', id })
@@ -621,6 +634,49 @@ export const useSession = create<SessionState>((set, get) => {
     clearConversation: () =>
       set({ messages: [], tasks: [], activeTaskId: null, confirmation: null, activity: [] }),
 
+    connectionLost: () => {
+      // The agent cancels a session's task when its UI disconnects, so a task
+      // shown "in progress" past this point would never finish, and an
+      // approval card would be answering a request nobody is waiting on.
+      const { activeTaskId } = get()
+      set((s) => ({
+        activeTaskId: null,
+        confirmation: null,
+        voice: 'off' as VoiceState,
+        tasks: s.tasks.map((t) =>
+          t.id === activeTaskId && !isTerminal(t.status)
+            ? {
+                ...t,
+                status: 'failed' as const,
+                statusLine: 'Connection lost',
+                endedAt: Date.now(),
+                steps: t.steps.map((step) =>
+                  step.status === 'running' ? { ...step, status: 'skipped' as const } : step,
+                ),
+              }
+            : t,
+        ),
+      }))
+      if (!activeTaskId) return
+      releaseAll('error')
+      pushActivity('paradox', 'Task stopped — connection lost', 'bad')
+      set((s) => ({
+        messages: [
+          ...s.messages,
+          {
+            id: uid('msg'),
+            role: 'system',
+            text: 'Lost the connection to the Paradox agent mid-task, so the task stopped there. '
+              + 'Check what it had already done before asking again.',
+            createdAt: Date.now(),
+            source: 'text',
+            error: true,
+            taskId: activeTaskId,
+          },
+        ],
+      }))
+    },
+
     applyServerEvent: (event) => {
       switch (event.type) {
         case 'hello':
@@ -629,6 +685,7 @@ export const useSession = create<SessionState>((set, get) => {
               agent: event.agent,
               version: event.version,
               capabilities: event.capabilities,
+              config: event.config ?? null,
             },
           })
           pushLog('ok', 'paradox', `${event.agent} ${event.version} online — ${event.capabilities.join(', ')}`)
@@ -826,6 +883,7 @@ export function bootstrapTransport() {
       // left showing the last track would be claiming something it cannot see.
       stopPingLoop()
       useSession.setState({ stats: null, media: null, mediaSampledAt: null, latencyMs: null })
+      useSession.getState().connectionLost()
     }
   }
   const { settings, connect } = useSession.getState()
